@@ -9,7 +9,7 @@ ply={
 	cx=7,
 	cy=7,
 	
-	-- tile fraction
+	-- tile fraction [0, 8]
 	rx=0,
 	ry=0,
 	
@@ -25,7 +25,7 @@ ply={
 		y=-1,
 	}
 }
-ply_spd=(100/60)/8 -- px/sec
+ply_spd=(100/60) -- px/sec
 shoot_spd_mult=0.85
 shoot_time=8 -- frame delay
 shoot_timer=0
@@ -37,14 +37,14 @@ spd_bullet=120/60 -- px/sec
 cell_x=3
 cell_y=3
 
-scroll_x=64
-scroll_y=64
+cam_x=64
+cam_y=64
 
 function ply_shoot()
 	dir=ply.shoot_dir
 	bullet={
-		x=pixel_x(ply)+dir.x*8,
-		y=pixel_y(ply)+dir.y*8,
+		x=entx(ply)+dir.x*8,
+		y=enty(ply)+dir.y*8,
 		spd={
 			x=dir.x*spd_bullet,
 			y=dir.y*spd_bullet,
@@ -52,14 +52,6 @@ function ply_shoot()
 		update=b_linear,
 	}
 	add(bullets,bullet)
-end
-
-function pixel_x(ent)
- return ent.cx*8+ent.rx*8
-end
-
-function pixel_y(ent)
- return ent.cy*8+ent.ry*8
 end
 
 function move_ply()
@@ -79,12 +71,12 @@ function move_ply()
   ply.rx=0
   col_left=true
  end
-	while ply.rx>1 do
-	 ply.rx-=1
+	while ply.rx>8 do
+	 ply.rx-=8
 	 ply.cx+=1
 	end
 	while ply.rx<0 do
-	 ply.rx+=1
+	 ply.rx+=8
 	 ply.cx-=1
 	end
 	
@@ -104,12 +96,12 @@ function move_ply()
   ply.ry=0
   col_up=true
  end
-	while ply.ry>1 do
-	 ply.ry-=1
+	while ply.ry>8 do
+	 ply.ry-=8
 	 ply.cy+=1
 	end
 	while ply.ry<0 do
-	 ply.ry+=1
+	 ply.ry+=8
 	 ply.cy-=1
 	end
 	return col_left,col_right,col_up,col_down
@@ -148,12 +140,12 @@ end
 function goto_first_room_dir(dir)
  for _,l in ipairs(room.links) do
   if dir==d_up or dir==d_down then 
-   local ply_x=pixel_x(ply)
+   local ply_x=entx(ply)
 	  if l.dir==dir and ply_x>=l.door.x1-2 and ply_x<=l.door.x2+2 then
 	   goto_room(l.trx,l.try,l.tcx,l.tcy,l.dir)
 	  end
   elseif l.dir==dir then
-   local ply_y=pixel_y(ply)
+   local ply_y=enty(ply)
 	  if l.dir==dir and ply_y>=l.door.y2-2 and ply_y<=l.door.y1+2 then
 	   goto_room(l.trx,l.try,l.tcx,l.tcy,l.dir)
 	  end
@@ -254,16 +246,65 @@ function _update60()
 	 goto_first_room_dir(d_down)
 	end
 	
-	if key_bits!=last_keys and key_bits>5 then
-	 -- todo: anti-cobble
-	 ply.rx=(flr(ply.rx*8)+0.5)/8
-	 ply.ry=(flr(ply.ry*8)+0.5)/8
+	-- anti-cobble if diagonal
+	if key_bits!=last_keys and key_bits>4 then
+	 ply.rx=flr(ply.rx)+0.5
+	 ply.ry=flr(ply.ry)+0.5
 	end
-	scroll_x=pixel_x(ply)
-	scroll_y=pixel_y(ply)
+
+ -- get and clamp camera scroll
+	cam_x=entx(ply)
+	cam_y=enty(ply)
 	clamp_scroll_to_room()
 	
 	last_keys=key_bits
+end
+
+function _draw()
+	cls(0)
+	camera(cam_x-64, cam_y-64)
+	
+	-- draw room
+	room.t.draw()
+
+ -- draw player ent
+	if ply.is_vert then
+		spr(
+			ply_vert_spr,
+			entx(ply), enty(ply), 1, 1,
+			false, ply.is_flip)
+	else
+		spr(
+			ply_hori_spr,
+			entx(ply), enty(ply), 1, 1,
+			ply.is_flip, false)
+	end
+	
+	-- draw bullets
+	for _,bullet in ipairs(bullets) do
+		spr(spr_bullet,bullet.x,bullet.y)
+	end
+	
+	-- draw doors
+	for _,l in ipairs(room.links) do
+	 spr(l.door.spr1,l.door.x1,l.door.y1,1,1,l.door.flip_x,l.door.flip_y)
+	 spr(l.door.spr1+1,l.door.x2,l.door.y2,1,1,l.door.flip_x,l.door.flip_y)
+	end
+end
+-->8
+-- ent & vectors util
+function normalize(v)
+	len=sqrt(v.x*v.x+v.y*v.y)
+	v.x/=len
+	v.y/=len
+end
+
+function entx(ent)
+ return ent.cx*8+ent.rx
+end
+
+function enty(ent)
+ return ent.cy*8+ent.ry
 end
 
 function clamp_scroll_to_room()
@@ -273,54 +314,19 @@ function clamp_scroll_to_room()
  local right=room.t.w*128-64
  local bottom=room.t.h*128-64
 
- if scroll_x<left then
- 	scroll_x=left
+ if cam_x<left then
+ 	cam_x=left
  end
- if scroll_x>right then
-  scroll_x=right
+ if cam_x>right then
+  cam_x=right
  end
- if scroll_y<top then
-  scroll_y=top
+ if cam_y<top then
+  cam_y=top
  end
- if scroll_y>bottom then
-  scroll_y=bottom
+ if cam_y>bottom then
+  cam_y=bottom
  end
 end
-
-function _draw()
-	cls(0)
-	camera(scroll_x-64, scroll_y-64)
-	
-	room.t.draw()
-
-	if ply.is_vert then
-		spr(
-			ply_vert_spr,
-			pixel_x(ply), pixel_y(ply), 1, 1,
-			false, ply.is_flip)
-	else
-		spr(
-			ply_hori_spr,
-			pixel_x(ply), pixel_y(ply), 1, 1,
-			ply.is_flip, false)
-	end
-	for _,bullet in ipairs(bullets) do
-		spr(spr_bullet,bullet.x,bullet.y)
-	end
-	
-	for _,l in ipairs(room.links) do
-	 spr(l.door.spr1,l.door.x1,l.door.y1,1,1,l.door.flip_x,l.door.flip_y)
-	 spr(l.door.spr1+1,l.door.x2,l.door.y2,1,1,l.door.flip_x,l.door.flip_y)
-	end
-end
--->8
--- vectors util
-function normalize(v)
-	len=sqrt(v.x*v.x+v.y*v.y)
-	v.x/=len
-	v.y/=len
-end
-
 -->8
 -- input util
 unit_45=0.707
