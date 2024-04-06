@@ -67,14 +67,17 @@ function move_ply()
  -- horizontal
  ply.rx+=ply.dx
  local cx,cy=room.t.coord(ply.cx+1,ply.cy)
+ local col_left,col_right=false,false
  if fget(mget(cx,cy),7) and ply.rx>0 then
   ply.dx=0
   ply.rx=0
+  col_right=true
  end
  local cx,cy=room.t.coord(ply.cx-1,ply.cy)
  if fget(mget(cx,cy),7) and ply.rx<0 then
   ply.dx=0
   ply.rx=0
+  col_left=true
  end
 	while ply.rx>1 do
 	 ply.rx-=1
@@ -89,14 +92,17 @@ function move_ply()
 	-- vertical
 	ply.ry+=ply.dy
  local cx,cy=room.t.coord(ply.cx,ply.cy+1)
+ local col_up,col_down=false,false
 	if fget(mget(cx,cy),7) and ply.ry>0 then
   ply.dy=0
   ply.ry=0
+  col_down=true
  end
  local cx,cy=room.t.coord(ply.cx,ply.cy-1)
  if fget(mget(cx,cy),7) and ply.ry<0 then
   ply.dy=0
   ply.ry=0
+  col_up=true
  end
 	while ply.ry>1 do
 	 ply.ry-=1
@@ -106,6 +112,53 @@ function move_ply()
 	 ply.ry+=1
 	 ply.cy-=1
 	end
+	return col_left,col_right,col_up,col_down
+end
+
+function goto_room(rx,ry,tcx,tcy,dir)
+ room=floor[rx][ry]
+ local ix=tcx*16
+ local iy=tcy*16
+ local cx,cy,rx,ry=0,0,0,0
+ if dir==d_up then
+  -- end up at bottom of cell
+  -- half in screen
+  cx=7
+  cy=14
+  rx=0.5
+ elseif dir==d_down then
+  cx=7
+  cy=2
+  rx=0.5
+ elseif dir==d_left then
+  cx=14
+  cy=7
+ 	ry=0.5
+ elseif dir==d_right then
+  cx=2
+  cy=7
+ 	ry=0.5
+ end
+ ply.cx=ix+cx
+ ply.cy=iy+cy
+ ply.rx=rx
+ ply.ry=ry
+end
+
+function goto_first_room_dir(dir)
+ for _,l in ipairs(room.links) do
+  if dir==d_up or dir==d_down then 
+   local ply_x=pixel_x(ply)
+	  if l.dir==dir and ply_x>=l.door.x1-2 and ply_x<=l.door.x2+2 then
+	   goto_room(l.trx,l.try,l.tcx,l.tcy,l.dir)
+	  end
+  elseif l.dir==dir then
+   local ply_y=pixel_y(ply)
+	  if l.dir==dir and ply_y>=l.door.y2-2 and ply_y<=l.door.y1+2 then
+	   goto_room(l.trx,l.try,l.tcx,l.tcy,l.dir)
+	  end
+  end
+ end
 end
 
 function _init()
@@ -187,9 +240,18 @@ function _update60()
 	ply.dy=move_wish.y*use_spd
 	
 	-- updating player pos from vel
-	move_ply()
+	cleft,cright,cup,cdown=move_ply()
 	
-	--room.t.collide(room.t, ply)
+	-- test if player touching doors
+	if cleft then
+	 goto_first_room_dir(d_left)
+	elseif cright then
+	 goto_first_room_dir(d_right)
+	elseif cup then
+	 goto_first_room_dir(d_up)
+	elseif cdown then
+	 goto_first_room_dir(d_down)
+	end
 	
 	scroll_x=pixel_x(ply)
 	scroll_y=pixel_y(ply)
@@ -513,23 +575,38 @@ d_down=1
 d_left=2
 d_right=3
 
+fp_1_43={
+ t=room_types.square,
+ links={
+  {
+   dcx=0,dcy=0,
+   dir=d_left,
+   -- target room coords
+   trx=3,try=3,
+   -- target cell coords
+   tcx=1,tcy=0,
+  },
+ }
+}
+
 fp_1_33={
  t=room_types.corner_nw,
  links={
   {
    dcx=0,dcy=0,
    dir=d_up,
-   x=3,y=2
+   -- target room coords
+   trx=3,try=2,
+   -- target cell coords
+   tcx=0,tcy=0,
   },
   {
    dcx=1,dcy=0,
    dir=d_right,
-   x=3,y=3
-  },
-  {
-   dcx=0,dcy=1,
-   dir=d_right,
-   x=3,y=3
+   -- target room coords
+   trx=4,try=3,
+   -- target cell coords
+   tcx=0,tcy=0,
   },
  }
 }
@@ -540,7 +617,10 @@ fp_1_32={
   {
    dcx=0,dcy=0,
    dir=d_down,
-   x=3,y=3
+   -- target room coords
+   trx=3,try=3,
+   -- target cell coords
+   tcx=0,tcy=0,
   },
  }
 }
@@ -550,7 +630,7 @@ fp_1={
  {{},{},{},{},{}},
  {{},{},{},{},{}},
  {{},fp_1_32,fp_1_33,{},{}},
- {{},{},{},{},{}},
+ {{},{},fp_1_43,{},{}},
  {{},{},{},{},{}},
 }
 
@@ -621,72 +701,6 @@ function floor_from_plan(plan)
  end
  return floor
 end
--->8
--- solid-checks
-
---[[
- opt = where to check collisions
-  full,left,right,up,down,
-  ldown,rdown,lup,rup
- f = object that MUST contain
-  w (width), h (height),
-  ox (offset-x), oy (offset-y)
- ox = additional offset-x
-  while generating collision-
-  pixels
- oy = additional offset-y
-  while generating collision-
-  pixels
- flags = number or a list of
-  numbers that contains the
-  flags, which should be
-  checked for collision. check
-  runs in "or"-mode, means it
-  returns "true" if only one
-  of the flags are detected.
- debug = if "true", it will
-  draw a red pixel on each
-  "collision-pixel"-position
---]]
-function move_x(ent,dx,width)
- if dx<0 then
-  local ix=pixel_x(ent)
-  local iy=pixel_y(ent)
-  for x=ix,ix-dx do
-   if fget(mget(x/8,iy/8),7) then
-    return true
-   else
-    ent.cx=x/8
-    ent.rx=x%8
-   end
-  end
- end
- return false
-end
-
-function move_y(ent,dy)
- 
-end
-function move_ent(opt,f,ox,oy,flags,debug)
- local collist={}
- ox = ox or 0
- oy = oy or 0
- flags=flags or {0}
- if(type(flags)!="table")flags={flags}
- local ix=f.x+f.ox+ox
- local iy=f.y+f.oy+oy
- for x=ix,ix+f.w+7,8 do
-  for y=iy,iy+f.h+7,8 do
-   add(collist, {x=min(x,ix+f.w), y=min(y,iy+f.h)})
-  end
- end
- for c in all(collist) do
-  for v in all(flags) do
-   if(fget(mget(c.x/8,c.y/8),v))return true
-  end
- end
- return false
-end
 __gfx__
 66666666666776666666777666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666
 66666666667007666667000766666666660606666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666
@@ -696,14 +710,14 @@ __gfx__
 66766766700000076770007666666666606660666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666
 66666666707777076667000766666666600600666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666
 66666666676666766666777666666666660066666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666
-77777777000000000000000066667777777766667077707066666777666666666666666666666666666666666666666666666666666666666666666666666666
-77777777000000000000000066670770770776667770770766677707666666666666666666666666666666666666666666666666666666666666666666666666
-77777777000000000000070066777777777777667777707066777070666666666666666666666666666666666666666666666666666666666666666666666666
-77777777000000000000700067707707707707767077770767707707666666666666666666666666666666666666666666666666666666666666666666666666
-77777777000000000007000067777777777777766770707077777070666666666666666666666666666666666666666666666666666666666666666666666666
-77777777000000000070000070707070707070776677770770777707666666666666666666666666666666666666666666666666666666666666666666666666
-77777777000000000000000077070707070707076667707077707070666666666666666666666666666666666666666666666666666666666666666666666666
-77777777000000000000000070707070707070776666677777777707666666666666666666666666666666666666666666666666666666666666666666666666
+77777777000000000000000066660000000066660077707066666000666666666666666666666666666666666666666666666666666666666666666666666666
+77777777000000000000000066607770770706660770770766600707666666666666666666666666666666666666666666666666666666666666666666666666
+77777777000000000000070066077777777770660777707066077070666666666666666666666666666666666666666666666666666666666666666666666666
+77777777000000000000700060707707707707060777770760707707666666666666666666666666666666666666666666666666666666666666666666666666
+77777777000000000007000060777777777777066070707007777070666666666666666666666666666666666666666666666666666666666666666666666666
+77777777000000000070000007707070707070706607770700777707666666666666666666666666666666666666666666666666666666666666666666666666
+77777777000000000000000007070707070707006660077007707070666666666666666666666666666666666666666666666666666666666666666666666666
+77777777000000000000000000707070707070706666600007777707666666666666666666666666666666666666666666666666666666666666666666666666
 66666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666
 66666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666
 66666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666
