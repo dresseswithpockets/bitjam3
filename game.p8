@@ -238,35 +238,9 @@ function _draw()
 		spr(spr_bullet,bullet.x,bullet.y)
 	end
 	
-	for _,link in ipairs(room.links) do
-	 local ix=link.dcx*128
-	 local iy=link.dcy*128
-	 local x1,y1,x2,y2=0,0,0,0
-	 local spr1=19
-	 local flip_x,flip_y=false,false
-	 if link.dir==d_up then
-	  x1=56
-	  x2=64
-	 elseif link.dir==d_down then
-	  x1=56
-	  x2=64
-	  y1=120
-	  y2=120
-	  flip_y=true
-	 elseif link.dir==d_left then
-	  y1=64
-	  y2=56
-	  spr1=21
-	 elseif link.dir==d_right then
-	  y1=64
-	  y2=56
-	  x1=120
-	  x2=120
-	  spr1=21
-	  flip_x=true
-	 end
-	 spr(spr1,ix+x1,iy+y1,1,1,flip_x,flip_y)
-	 spr(spr1+1,ix+x2,iy+y2,1,1,flip_x,flip_y)
+	for _,l in ipairs(room.links) do
+	 spr(l.door.spr1,l.door.x1,l.door.y1,1,1,l.door.flip_x,l.door.flip_y)
+	 spr(l.door.spr1+1,l.door.x2,l.door.y2,1,1,l.door.flip_x,l.door.flip_y)
 	end
 end
 -->8
@@ -583,6 +557,55 @@ fp_1={
 floor_plans={
  fp_1
 }
+
+function precalc_doors()
+ for _,plan in ipairs(floor_plans) do
+ for _,col in ipairs(plan) do
+ for _,cell in ipairs(col) do
+ for _,link in ipairs(cell.links) do
+  local door={
+	  x1=0,y1=0,
+	  x2=0,y2=0,
+	  spr1=19,
+	  flip_x=false,
+	  flip_y=false,
+	 }
+	 link.door=door
+	 if link.dir==d_up then
+	  door.x1=56
+	  door.x2=64
+	 elseif link.dir==d_down then
+	  door.x1=56
+	  door.x2=64
+	  door.y1=120
+	  door.y2=120
+	  door.flip_y=true
+	 elseif link.dir==d_left then
+	  door.y1=64
+	  door.y2=56
+	  door.spr1=21
+	 elseif link.dir==d_right then
+	  door.y1=64
+	  door.y2=56
+	  door.x1=120
+	  door.x2=120
+	  door.spr1=21
+	  door.flip_x=true
+	 end
+	 
+  local ix=link.dcx*128
+  local iy=link.dcy*128
+	 door.x1+=ix
+	 door.y1+=iy
+	 door.x2+=ix
+	 door.y2+=iy
+	end
+	end
+	end
+	end
+end
+
+precalc_doors()
 
 function floor_from_plan(plan)
  local floor={}
