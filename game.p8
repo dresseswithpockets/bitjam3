@@ -238,12 +238,11 @@ function _draw()
 		spr(spr_bullet,bullet.x,bullet.y)
 	end
 	
-	camera(0,0)
 	for _,link in ipairs(room.links) do
 	 local ix=link.dcx*128
 	 local iy=link.dcy*128
 	 local x1,y1,x2,y2=0,0,0,0
-	 local dspr=19
+	 local spr1=19
 	 local flip_x,flip_y=false,false
 	 if link.dir==d_up then
 	  x1=56
@@ -257,17 +256,17 @@ function _draw()
 	 elseif link.dir==d_left then
 	  y1=64
 	  y2=56
-	  dspr=21
+	  spr1=21
 	 elseif link.dir==d_right then
-	  y1=56
-	  y2=64
+	  y1=64
+	  y2=56
 	  x1=120
 	  x2=120
-	  dspr=21
+	  spr1=21
 	  flip_x=true
 	 end
-	 spr(dspr,x1,y1,1,1,flip_x,flip_y)
-	 spr(dspr+1,x2,y2,1,1,flip_x,flip_y)
+	 spr(spr1,ix+x1,iy+y1,1,1,flip_x,flip_y)
+	 spr(spr1+1,ix+x2,iy+y2,1,1,flip_x,flip_y)
 	end
 end
 -->8
@@ -541,12 +540,22 @@ d_left=2
 d_right=3
 
 fp_1_33={
- t=room_types.square,
+ t=room_types.corner_nw,
  links={
   {
    dcx=0,dcy=0,
-   dir=d_down,
+   dir=d_up,
    x=3,y=2
+  },
+  {
+   dcx=1,dcy=0,
+   dir=d_right,
+   x=3,y=3
+  },
+  {
+   dcx=0,dcy=1,
+   dir=d_right,
+   x=3,y=3
   },
  }
 }
@@ -556,7 +565,7 @@ fp_1_32={
  links={
   {
    dcx=0,dcy=0,
-   dir=d_up,
+   dir=d_down,
    x=3,y=3
   },
  }
