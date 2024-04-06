@@ -4,6 +4,7 @@ DONE room shapes
 DONE fix room collision detection with non-Square type rooms
 DONE change palette to black and white (set palt)
 TODO add doors between rooms
+DONE doors dynamically rendering between rooms
 DONE precalculate door positions & sprites to save cycles
 TODO replace pea-shooter with low-damage Lazy Devs' style shooter
 TODO add heat-seeking shooter which shoots slowly with high damage
