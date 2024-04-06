@@ -165,23 +165,33 @@ function _init()
 end
 
 function _update60()
-	-- player wish direction
+ -- grab btn_lut-mapped input
+ -- keys() is wasd
+ -- btn() is ⬅️➡️⬆️⬇️
 	local key_bits=btn_lut[keys()&0b1111]
-	local mv_x,mv_y=dir_mapped(key_bits)
-	if mv_x!=0 or mv_y!=0 then
+	local btn_bits=btn_lut[btn()&0b1111]
+ ply.sh_x=dx_lut[btn_bits]
+ ply.sh_y=dy_lut[btn_bits]
+	ply.shoot=ply.sh_x!=0 or ply.sh_y!=0
+	
+	use_spd=ply_spd
+ if ply.shoot then
+ 	use_spd*=shoot_spd_mult
+ end
+	
+	-- updating player spd from
+	-- player input direction
+	ply.dx=dx_lut[key_bits]*use_spd
+	ply.dy=dy_lut[key_bits]*use_spd
+	
+	if ply.dx!=0 or ply.dy!=0 then
 		-- set state for player sprite
 		ply.spr=ply_spr_lut[key_bits]
 		ply.flip_y=ply_vert_lut[key_bits]
 		ply.flip_x=ply_hori_lut[key_bits]
 	end
 	
-	local btn_bits=btn_lut[btn()&0b1111]
-	local sh_x,sh_y=dir_mapped(btn_bits)
-	ply.shoot=sh_x!=0 or sh_y!=0
 	if ply.shoot then
-	 ply.sh_x=dx_lut[btn_bits]
-	 ply.sh_y=dy_lut[btn_bits]
-
 		-- shooting overrides the
 		-- player's sprite & flip
 		ply.spr=ply_spr_lut[btn_bits]
@@ -196,35 +206,17 @@ function _update60()
  	shoot_timer=shoot_time
  end
  
- remove_bullets={}
- for _,bullet in ipairs(bullets) do
-	 -- update each bullet
-	 bullet.update(bullet)
-
-	 -- remove bullets which are
-	 -- beyond the bounds of the
-	 -- play field
+ for i=#bullets,1,-1 do
+  local bullet=bullets[i]
  	if bullet.x<-500 or
- 	 	bullet.x>500 or
- 	 	bullet.y<-500 or
- 	 	bullet.y>500 then
- 		add(remove_bullets,bullet)
- 	end
+	 	 bullet.x>500 or
+	 	 bullet.y<-500 or
+	 	 bullet.y>500 then
+   deli(bullets,i)
+  else
+   bullet.update(bullet)
+  end
  end
- 
- for _,bullet in ipairs(remove_bullets) do
- 	del(bullets,bullet)
- end
- 
- use_spd=ply_spd
- if ply.shoot then
- 	use_spd*=shoot_spd_mult
- end
-	
-	-- updating player spd from
-	-- player wish direction
-	ply.dx=mv_x*use_spd
-	ply.dy=mv_y*use_spd
 	
 	-- updating player pos from vel
 	cleft,cright,cup,cdown=move_ply()
@@ -300,19 +292,19 @@ end
 
 function clamp_scroll_to_room()
  -- clamp camera to room
- local left=64
- local top=64
  local right=room.t.w*128-64
  local bottom=room.t.h*128-64
 
- if cam_x<left then
- 	cam_x=left
+ -- left is always 64
+ if cam_x<64 then
+ 	cam_x=64
  end
  if cam_x>right then
   cam_x=right
  end
- if cam_y<top then
-  cam_y=top
+ -- top is always 64
+ if cam_y<64 then
+  cam_y=64
  end
  if cam_y>bottom then
   cam_y=bottom
@@ -324,11 +316,6 @@ unit_45=0.707
 btn_lut={[0]=0,1,2,0,3,5,6,3,4,8,7,4,0,1,2,0}
 dx_lut={[0]=0,-1,1,0,0,-0.707,0.707,0.707,-0.707}
 dy_lut={[0]=0,0,0,-1,1,-0.707,-0.707,0.707,0.707}
-
--- get mapped input
-function dir_mapped(input)
- return dx_lut[input], dy_lut[input]
-end
 
 -- remapping keyboards
 function keys()
