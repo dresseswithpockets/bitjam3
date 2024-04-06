@@ -169,36 +169,37 @@ function _init()
  local plan=floor_plans[1]
  floor=floor_from_plan(plan)
  room=floor[cell_x][cell_y]
+ 
+ last_keys=0
 end
 
 function _update60()
 	-- player wish direction
-	move_wish=move_axes()
-	if not is_zero(move_wish) then
-		normalize(move_wish)
-
+	local key_bits=keys()&0b1111
+	local mv_x,mv_y=dir_mapped(key_bits)
+	if mv_x!=0 or mv_y!=0 then
 		-- set state for player sprite
-		ply.is_vert=move_wish.x==0
+		ply.is_vert=mv_x==0
 		if ply.is_vert then
-			ply.is_flip=move_wish.y>0
+			ply.is_flip=mv_y>0
 		else
-			ply.is_flip=move_wish.x>0
+			ply.is_flip=mv_x>0
 		end
 	end
 	
-	shoot_wish=shoot_axes()
-	ply.shoot=not is_zero(shoot_wish)
+	local btn_bits=btn()&0b1111
+	local sh_x,sh_y=dir_mapped(btn_bits)
+	ply.shoot=sh_x!=0 or sh_y!=0
 	if ply.shoot then
-		normalize(shoot_wish)
-		ply.shoot_dir=shoot_wish
+		ply.shoot_dir={x=sh_x,y=sh_y}
 
 		-- shooting overrides the
 		-- player's sprite dir/flip
-		ply.is_vert=shoot_wish.x==0
+		ply.is_vert=sh_x==0
 		if ply.is_vert then
-			ply.is_flip=shoot_wish.y>0
+			ply.is_flip=sh_y>0
 		else
-			ply.is_flip=shoot_wish.x>0
+			ply.is_flip=sh_x>0
 		end
 	end
 	
@@ -236,8 +237,8 @@ function _update60()
 	
 	-- updating player spd from
 	-- player wish direction
-	ply.dx=move_wish.x*use_spd
-	ply.dy=move_wish.y*use_spd
+	ply.dx=mv_x*use_spd
+	ply.dy=mv_y*use_spd
 	
 	-- updating player pos from vel
 	cleft,cright,cup,cdown=move_ply()
@@ -253,9 +254,16 @@ function _update60()
 	 goto_first_room_dir(d_down)
 	end
 	
+	if key_bits!=last_keys and key_bits>5 then
+	 -- todo: anti-cobble
+	 ply.rx=(flr(ply.rx*8)+0.5)/8
+	 ply.ry=(flr(ply.ry*8)+0.5)/8
+	end
 	scroll_x=pixel_x(ply)
 	scroll_y=pixel_y(ply)
 	clamp_scroll_to_room()
+	
+	last_keys=key_bits
 end
 
 function clamp_scroll_to_room()
@@ -313,70 +321,30 @@ function normalize(v)
 	v.y/=len
 end
 
-function is_zero(v)
- return v.x==0 and v.y==0
-end
 -->8
 -- input util
-function btn_axis(neg, pos, ply)
- r=0
- if btn(neg, ply) then r-=1 end
- if btn(pos, ply) then r+=1 end
-	return r
-end
+unit_45=0.707
+btn_lut={[0]=0,1,2,0,3,5,6,3,4,8,7,4,0,1,2,0}
+dx_lut={[0]=0,-1,1,0,0,-0.707,0.707,0.707,-0.707}
+dy_lut={[0]=0,0,0,-1,1,-0.707,-0.707,0.707,0.707}
 
-function key_axis(neg, pos)
-	r=0
-	if neg() then r-=1 end
-	if pos() then r+=1 end
-	return r
-end
-
-function shoot_axes()
- return {
-		x=key_axis(key_left,key_right),
-		y=key_axis(key_up,key_down),
-	}
-end
-
-function move_axes()
-	return {
-		x=key_axis(key_a,key_d),
-		y=key_axis(key_w,key_s),
-	}
+-- get mapped input
+function dir_mapped(input)
+ local b=btn_lut[input]
+ return dx_lut[b], dy_lut[b]
 end
 
 -- remapping keyboards
-function key_w()
-	return stat(28, 26)
+function keys()
+ -- l r u d
+ return (tonum(stat(28, 4)))|
+        (tonum(stat(28, 7))<<1)|
+        (tonum(stat(28,26))<<2)|
+        (tonum(stat(28,22))<<3)|
+        (tonum(stat(28,225))<<4)|
+        (tonum(stat(28,44))<<5)
 end
-function key_a()
-	return stat(28, 4)
-end
-function key_s()
-	return stat(28, 22)
-end
-function key_d()
-	return stat(28, 7)
-end
-function key_up()
-	return btn(2) 
-end
-function key_left()
-	return btn(0)
-end
-function key_down()
- return btn(3)
-end
-function key_right()
-	return btn(1)
-end
-function key_shift()
-	return stat(28, 225)
-end
-function key_space()
- return stat(28, 44)
-end
+
 -->8
 -- bullet funcs
 function b_linear(self)
