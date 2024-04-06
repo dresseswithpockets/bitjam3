@@ -17,13 +17,13 @@ ply={
 	dx=0,
 	dy=0,
 	
-	is_vert=true,
-	is_flip=false,
+	-- shoot dir
+	sh_x=0,
+	sh_y=-1,
 	
-	shoot_dir={
-		x=0,
-		y=-1,
-	}
+	spr=1,
+	flip_y=false,
+	flip_x=false,
 }
 ply_spd=(100/60) -- px/sec
 shoot_spd_mult=0.85
@@ -41,17 +41,15 @@ cam_x=64
 cam_y=64
 
 function ply_shoot()
-	dir=ply.shoot_dir
-	bullet={
-		x=entx(ply)+dir.x*8,
-		y=enty(ply)+dir.y*8,
+	add(bullets,{
+		x=entx(ply)+ply.sh_x*8,
+		y=enty(ply)+ply.sh_y*8,
 		spd={
-			x=dir.x*spd_bullet,
-			y=dir.y*spd_bullet,
+			x=ply.sh_x*spd_bullet,
+			y=ply.sh_y*spd_bullet,
 		},
 		update=b_linear,
-	}
-	add(bullets,bullet)
+	})
 end
 
 function move_ply()
@@ -162,37 +160,33 @@ function _init()
  floor=floor_from_plan(plan)
  room=floor[cell_x][cell_y]
  
+ -- used for anti-cobblestoning
  last_keys=0
 end
 
 function _update60()
 	-- player wish direction
-	local key_bits=keys()&0b1111
+	local key_bits=btn_lut[keys()&0b1111]
 	local mv_x,mv_y=dir_mapped(key_bits)
 	if mv_x!=0 or mv_y!=0 then
 		-- set state for player sprite
-		ply.is_vert=mv_x==0
-		if ply.is_vert then
-			ply.is_flip=mv_y>0
-		else
-			ply.is_flip=mv_x>0
-		end
+		ply.spr=ply_spr_lut[key_bits]
+		ply.flip_y=ply_vert_lut[key_bits]
+		ply.flip_x=ply_hori_lut[key_bits]
 	end
 	
-	local btn_bits=btn()&0b1111
+	local btn_bits=btn_lut[btn()&0b1111]
 	local sh_x,sh_y=dir_mapped(btn_bits)
 	ply.shoot=sh_x!=0 or sh_y!=0
 	if ply.shoot then
-		ply.shoot_dir={x=sh_x,y=sh_y}
+	 ply.sh_x=dx_lut[btn_bits]
+	 ply.sh_y=dy_lut[btn_bits]
 
 		-- shooting overrides the
-		-- player's sprite dir/flip
-		ply.is_vert=sh_x==0
-		if ply.is_vert then
-			ply.is_flip=sh_y>0
-		else
-			ply.is_flip=sh_x>0
-		end
+		-- player's sprite & flip
+		ply.spr=ply_spr_lut[btn_bits]
+		ply.flip_y=ply_vert_lut[btn_bits]
+		ply.flip_x=ply_hori_lut[btn_bits]
 	end
 	
 	if shoot_timer>0 then
@@ -268,17 +262,10 @@ function _draw()
 	room.t.draw()
 
  -- draw player ent
-	if ply.is_vert then
-		spr(
-			ply_vert_spr,
-			entx(ply), enty(ply), 1, 1,
-			false, ply.is_flip)
-	else
-		spr(
-			ply_hori_spr,
-			entx(ply), enty(ply), 1, 1,
-			ply.is_flip, false)
-	end
+ spr(
+  ply.spr,
+  entx(ply),enty(ply),1,1,
+  ply.flip_x,ply.flip_y)
 	
 	-- draw bullets
 	for _,bullet in ipairs(bullets) do
@@ -290,14 +277,18 @@ function _draw()
 	 spr(l.door.spr1,l.door.x1,l.door.y1,1,1,l.door.flip_x,l.door.flip_y)
 	 spr(l.door.spr1+1,l.door.x2,l.door.y2,1,1,l.door.flip_x,l.door.flip_y)
 	end
+	
+	camera(0,0)
+	print(btn_lut[keys()],9)
 end
 -->8
 -- ent & vectors util
-function normalize(v)
-	len=sqrt(v.x*v.x+v.y*v.y)
-	v.x/=len
-	v.y/=len
-end
+
+-- before: 2088
+-- after: 2069
+ply_spr_lut={2,2,1,1,2,2,2,2}
+ply_hori_lut={false,true,false,false,false,true,true}
+ply_vert_lut={[4]=true}
 
 function entx(ent)
  return ent.cx*8+ent.rx
@@ -336,8 +327,7 @@ dy_lut={[0]=0,0,0,-1,1,-0.707,-0.707,0.707,0.707}
 
 -- get mapped input
 function dir_mapped(input)
- local b=btn_lut[input]
- return dx_lut[b], dy_lut[b]
+ return dx_lut[input], dy_lut[input]
 end
 
 -- remapping keyboards
