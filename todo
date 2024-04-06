@@ -6,7 +6,7 @@ DONE change palette to black and white (set palt)
 DONE doors dynamically rendering between rooms
 DONE doors teleport the player between rooms
 DONE precalculate door positions & sprites to save cycles
-TODO replace pea-shooter with low-damage Lazy Devs' style shooter
+DONE replace pea-shooter with low-damage Lazy Devs' style shooter
 TODO add heat-seeking shooter which shoots slowly with high damage
 TODO add "transformation" mechanic - player presses a button to transform between abilities/weapons
 TODO add health to the player
@@ -28,6 +28,7 @@ TODO add boss enemy with bullet hell pattern attacks
 TODO add main menu
 TODO add additional unique floor plans
 DONE fix cobblestoning
+TODO make rapid fire weapon alternating
 
 # art
 DONE placeholder player
@@ -37,10 +38,10 @@ TODO "basic" enemy sprite
 TODO "crazy" enemy sprite
 TODO "heavy" enemy sprite
 TODO boss sprite
-TODO heat seeking bullet sprite
-TODO rapidfire bullet sprite
+TODO heat seeking bullet sprite (8 directions - flippable)
+TODO rapidfire bullet sprite (ddp style?, needs to fit 8 directions - flippable)
 TODO heart/health sprite
-TODO replace placeholder player sprite
+TODO replace placeholder player sprite (8 direction - flippable)
 TODO replace placeholder tiles
 
 # sfx
