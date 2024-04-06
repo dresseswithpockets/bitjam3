@@ -237,6 +237,38 @@ function _draw()
 	for _,bullet in ipairs(bullets) do
 		spr(spr_bullet,bullet.x,bullet.y)
 	end
+	
+	camera(0,0)
+	for _,link in ipairs(room.links) do
+	 local ix=link.dcx*128
+	 local iy=link.dcy*128
+	 local x1,y1,x2,y2=0,0,0,0
+	 local dspr=19
+	 local flip_x,flip_y=false,false
+	 if link.dir==d_up then
+	  x1=56
+	  x2=64
+	 elseif link.dir==d_down then
+	  x1=56
+	  x2=64
+	  y1=120
+	  y2=120
+	  flip_y=true
+	 elseif link.dir==d_left then
+	  y1=64
+	  y2=56
+	  dspr=21
+	 elseif link.dir==d_right then
+	  y1=56
+	  y2=64
+	  x1=120
+	  x2=120
+	  dspr=21
+	  flip_x=true
+	 end
+	 spr(dspr,x1,y1,1,1,flip_x,flip_y)
+	 spr(dspr+1,x2,y2,1,1,flip_x,flip_y)
+	end
 end
 -->8
 -- vectors util
@@ -503,15 +535,38 @@ end
 --   the position of the door
 --   coords the door links to
 
+d_up=0
+d_down=1
+d_left=2
+d_right=3
+
 fp_1_33={
  t=room_types.square,
- links={}
+ links={
+  {
+   dcx=0,dcy=0,
+   dir=d_down,
+   x=3,y=2
+  },
+ }
 }
 
+fp_1_32={
+ t=room_types.square,
+ links={
+  {
+   dcx=0,dcy=0,
+   dir=d_up,
+   x=3,y=3
+  },
+ }
+}
+
+-- col-major ([x][y])
 fp_1={
  {{},{},{},{},{}},
  {{},{},{},{},{}},
- {{},{},fp_1_33,{},{}},
+ {{},fp_1_32,fp_1_33,{},{}},
  {{},{},{},{},{}},
  {{},{},{},{},{}},
 }
