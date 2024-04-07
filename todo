@@ -41,7 +41,7 @@ TODO "heavy" enemy sprite
 TODO boss sprite
 TODO heat seeking bullet sprite (8 directions - flippable)
 TODO rapidfire bullet sprite (ddp style?, needs to fit 8 directions - flippable)
-TODO heart/health sprite
+DONE heart/health sprite
 TODO replace placeholder player sprite (8 direction - flippable)
 TODO replace placeholder tiles
 
