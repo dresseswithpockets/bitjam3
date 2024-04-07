@@ -6,24 +6,24 @@ ply_vert_spr=1
 ply_hori_spr=2
 ply={
  -- tile coords
-	cx=7,
-	cy=7,
+	cx=7,cy=7,
 	
 	-- tile fraction [0, 8]
-	rx=0,
-	ry=0,
+	rx=0,ry=0,
 	
 	-- velocity
-	dx=0,
-	dy=0,
+	dx=0,dy=0,
 	
 	-- shoot dir
-	sh_x=0,
-	sh_y=-1,
+	sh_x=0,sh_y=-1,
+	
+	-- collision
+	radius=4,
+	
+	health=3,
 	
 	spr=1,
-	flip_y=false,
-	flip_x=false,
+	flip_y=false,flip_x=false,
 }
 ply_spd=100/60 -- px/sec
 shoot_spd_mult=0.85
@@ -50,55 +50,55 @@ function ply_shoot()
 			spd_bullet/2))
 end
 
-function move_ply()
+function move_ent(ent)
  --
  -- horizontal
- ply.rx+=ply.dx
- local cx,cy=room.t.coord(ply.cx+1,ply.cy)
+ ent.rx+=ent.dx
+ local cx,cy=room.t.coord(ent.cx+1,ent.cy)
  local col_left,col_right=false,false
- if fget(mget(cx,cy),7) and ply.rx>0 then
-  ply.dx=0
-  ply.rx=0
+ if fget(mget(cx,cy),7) and ent.rx>0 then
+  ent.dx=0
+  ent.rx=0
   col_right=true
  end
- local cx,cy=room.t.coord(ply.cx-1,ply.cy)
- if fget(mget(cx,cy),7) and ply.rx<0 then
-  ply.dx=0
-  ply.rx=0
+ local cx,cy=room.t.coord(ent.cx-1,ent.cy)
+ if fget(mget(cx,cy),7) and ent.rx<0 then
+  ent.dx=0
+  ent.rx=0
   col_left=true
  end
 	while ply.rx>8 do
-	 ply.rx-=8
-	 ply.cx+=1
+	 ent.rx-=8
+	 ent.cx+=1
 	end
 	while ply.rx<0 do
-	 ply.rx+=8
-	 ply.cx-=1
+	 ent.rx+=8
+	 ent.cx-=1
 	end
 	
 	--
 	-- vertical
-	ply.ry+=ply.dy
- local cx,cy=room.t.coord(ply.cx,ply.cy+1)
+	ent.ry+=ent.dy
+ local cx,cy=room.t.coord(ent.cx,ent.cy+1)
  local col_up,col_down=false,false
-	if fget(mget(cx,cy),7) and ply.ry>0 then
-  ply.dy=0
-  ply.ry=0
+	if fget(mget(cx,cy),7) and ent.ry>0 then
+  ent.dy=0
+  ent.ry=0
   col_down=true
  end
- local cx,cy=room.t.coord(ply.cx,ply.cy-1)
- if fget(mget(cx,cy),7) and ply.ry<0 then
-  ply.dy=0
-  ply.ry=0
+ local cx,cy=room.t.coord(ent.cx,ent.cy-1)
+ if fget(mget(cx,cy),7) and ent.ry<0 then
+  ent.dy=0
+  ent.ry=0
   col_up=true
  end
-	while ply.ry>8 do
-	 ply.ry-=8
-	 ply.cy+=1
+	while ent.ry>8 do
+	 ent.ry-=8
+	 ent.cy+=1
 	end
-	while ply.ry<0 do
-	 ply.ry+=8
-	 ply.cy-=1
+	while ent.ry<0 do
+	 ent.ry+=8
+	 ent.cy-=1
 	end
 	return col_left,col_right,col_up,col_down
 end
@@ -149,6 +149,10 @@ function goto_first_room_dir(dir)
  end
 end
 
+function dmg_ply()
+ ply.health -= 1
+end
+
 function _init()
 	poke(0x5f2d,0x1)
 	palt(6, true)
@@ -163,6 +167,8 @@ function _init()
 end
 
 function _update60()
+ if ply.health <=0 then return end
+
  -- grab btn_lut-mapped input
  -- keys() is wasd
  -- btn() is ⬅️➡️⬆️⬇️
@@ -206,20 +212,37 @@ function _update60()
  
  for i=#bullets,1,-1 do
   local bullet=bullets[i]
-  local bx=entx(bullet)
-  local by=enty(bullet)
+  local bx,by=center(bullet)
  	if bx<-500 or
 	 	 bx>500 or
 	 	 by<-500 or
 	 	 by>500 then
    deli(bullets,i)
   else
-   bullet.update(bullet)
+   if not bullet:update() then
+    deli(bullets,i)
+   else
+    -- we do an n-scale dist
+    -- check before the real
+    -- radius-check. p8 uses
+    -- a fixed cap of like 32k
+    -- so its pretty easy to
+    -- cause an overflow when
+    -- checking large distances
+	   local px,py=center(ply)
+   	if check_dist(px,py,bx,by) then
+	    local dist=sqrdist(px,py,bx,by)
+	    if dist<bullet.radius+ply.radius then
+	     dmg_ply()
+	     deli(bullets,i)
+	    end
+	   end
+   end
   end
  end
 	
 	-- updating player pos from vel
-	cleft,cright,cup,cdown=move_ply()
+	cleft,cright,cup,cdown=move_ent(ply)
 	
 	-- test if player touching doors
 	if cleft then
@@ -248,6 +271,12 @@ end
 
 function _draw()
 	cls(0)
+	if ply.health<=0 then
+	 print("YOU ARE DEAD,", 34, 58)
+	 print("NOT BIG SURPRISE", 28, 64)
+	 return
+	end
+
 	camera(cam_x-64, cam_y-64)
 	
 	-- draw room
@@ -258,6 +287,8 @@ function _draw()
   ply.spr,
   entx(ply),enty(ply),1,1,
   ply.flip_x,ply.flip_y)
+ local px,py=center(ply)
+ pset(px,py,8)
 	
 	-- draw bullets
 	for _,bullet in ipairs(bullets) do
@@ -265,6 +296,8 @@ function _draw()
 		 spr_bullet,
 		 entx(bullet),
 		 enty(bullet))
+		local bx,by=center(bullet)
+		pset(bx,by,9)
 	end
 	
 	-- draw doors
@@ -274,7 +307,12 @@ function _draw()
 	end
 	
 	camera(0,0)
-	print(btn_lut[keys()],9)
+	-- draw health
+	for i=0,ply.health-1 do
+	 spr(4,1+i*9,1)
+	end
+	
+	-- debug/test zone
 end
 -->8
 -- ent & vectors util
@@ -287,6 +325,19 @@ ply_vert_lut={[4]=true}
 
 function dot(x1,y1,x2,y2)
  return x1*x2+y1*y2
+end
+
+function sqrlen(x,y)
+	return x*x+y*y
+end
+
+function sqrdist(x1,y1,x2,y2)
+ return sqrlen(x2-x1,y2-y1)
+end
+
+function check_dist(x1,y1,x2,y2,a)
+ a=a or 32
+ return abs(x2-x1)<=a and abs(y2-y1)<=a
 end
 
 function norm(x,y)
@@ -316,6 +367,11 @@ end
 
 function enty(ent)
  return ent.cy*8+ent.ry
+end
+
+function center(ent)
+ return ent.cx*8+ent.rx+4,
+ 	ent.cy*8+ent.ry+4
 end
 
 function clamp_scroll_to_room()
@@ -379,7 +435,8 @@ function b_seeker(cx,cy,rx,ry,dir_x,dir_y,target,spd)
   turn_spd=0.01,
 		target=target,
 		update=b_seeker_update,
-		nofollow_dist=8,
+		nofollow_dist=7.5,
+		radius=2,
 	}
 	return seeker
 end
@@ -387,11 +444,9 @@ end
 function b_seeker_update(self)
  if self.target then
 	 -- target dir vector
-	 local tx,ty,dist=dirto(
-	 	entx(self),
-	 	enty(self),
-	 	entx(self.target),
-	 	enty(self.target))
+	 local sx,sy=center(self)
+	 local px,py=center(self.target)
+	 local tx,ty,dist=dirto(sx,sy,px,py)
 	 
 	 -- disable following/seeking
 	 -- once its too close to the
@@ -424,6 +479,7 @@ function b_seeker_update(self)
  self.dy=self.dir_y*self.spd
  
  b_move(self)
+ return true
 end
 
 function b_move(self)
@@ -450,6 +506,7 @@ function b_move(self)
 	 self.ry+=8
 	 self.cy-=1
 	end
+	return true
 end
 
 -->8

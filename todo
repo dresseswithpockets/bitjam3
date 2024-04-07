@@ -9,8 +9,8 @@ DONE precalculate door positions & sprites to save cycles
 DONE replace pea-shooter with low-damage Lazy Devs' style shooter
 DONE add heat-seeking shooter which shoots slowly with high damage
 TODO add "transformation" mechanic - player presses a button to transform between abilities/weapons
-TODO add health to the player
-TODO add damage & death to the player
+DONE add health to the player
+DONE add damage & death to the player
 TODO add death screen with "START AGAIN" and "QUIT" options (funny ISAT reference)
 TODO create 2 unique floor plans
 TODO add random floor plan selection when player starts the game
@@ -29,6 +29,7 @@ TODO add main menu
 TODO add additional unique floor plans
 DONE fix cobblestoning
 TODO make rapid fire weapon alternating
+TODO AABB checks might be faster than sqrdist checks
 
 # art
 DONE placeholder player
