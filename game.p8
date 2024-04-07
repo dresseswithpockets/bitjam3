@@ -25,14 +25,14 @@ ply={
 	flip_y=false,
 	flip_x=false,
 }
-ply_spd=(100/60) -- px/sec
+ply_spd=100/60 -- px/sec
 shoot_spd_mult=0.85
-shoot_time=8 -- frame delay
+shoot_time=3 -- frame delay
 shoot_timer=0
 
 bullets={}
 spr_bullet=3
-spd_bullet=120/60 -- px/sec
+spd_bullet=140/60 -- px/sec
 
 cell_x=3
 cell_y=3
@@ -41,15 +41,13 @@ cam_x=64
 cam_y=64
 
 function ply_shoot()
-	add(bullets,{
-		x=entx(ply)+ply.sh_x*8,
-		y=enty(ply)+ply.sh_y*8,
-		spd={
-			x=ply.sh_x*spd_bullet,
-			y=ply.sh_y*spd_bullet,
-		},
-		update=b_linear,
-	})
+	add(bullets,
+		b_seeker(
+		 ply.cx,ply.cy,
+		 ply.sh_x*8,ply.sh_y*8,
+			ply.sh_x,ply.sh_y,
+			ply,
+			spd_bullet/2))
 end
 
 function move_ply()
@@ -208,10 +206,12 @@ function _update60()
  
  for i=#bullets,1,-1 do
   local bullet=bullets[i]
- 	if bullet.x<-500 or
-	 	 bullet.x>500 or
-	 	 bullet.y<-500 or
-	 	 bullet.y>500 then
+  local bx=entx(bullet)
+  local by=enty(bullet)
+ 	if bx<-500 or
+	 	 bx>500 or
+	 	 by<-500 or
+	 	 by>500 then
    deli(bullets,i)
   else
    bullet.update(bullet)
@@ -261,7 +261,10 @@ function _draw()
 	
 	-- draw bullets
 	for _,bullet in ipairs(bullets) do
-		spr(spr_bullet,bullet.x,bullet.y)
+		spr(
+		 spr_bullet,
+		 entx(bullet),
+		 enty(bullet))
 	end
 	
 	-- draw doors
@@ -281,6 +284,31 @@ end
 ply_spr_lut={2,2,1,1,2,2,2,2}
 ply_hori_lut={false,true,false,false,false,true,true}
 ply_vert_lut={[4]=true}
+
+function dot(x1,y1,x2,y2)
+ return x1*x2+y1*y2
+end
+
+function norm(x,y)
+ local mag=sqrt(x*x+y*y)
+ return x/mag,y/mag,mag
+end
+
+function dirto(fx,fy,tx,ty)
+ return norm(tx-fx,ty-fy)
+end
+
+function rotate(x,y,cx,cy,a)
+ local sina=sin(a)
+ local cosa=cos(a)
+ x-=cx
+ y-=cy
+ local rotx=cosa*x-sina*y
+ local roty=sina*x+cosa*y
+ rotx+=cx
+ roty+=cy
+ return rotx,roty
+end
 
 function entx(ent)
  return ent.cx*8+ent.rx
@@ -330,9 +358,98 @@ end
 
 -->8
 -- bullet funcs
-function b_linear(self)
-	self.x+=self.spd.x
-	self.y+=self.spd.y
+function b_linear(cx,cy,rx,ry,dx,dy)
+ return {
+  cx=cx,cy=cy,
+  rx=rx,ry=ry,
+  dx=dx,dy=dy,
+  update=b_move,
+ }
+end
+
+function b_seeker(cx,cy,rx,ry,dir_x,dir_y,target,spd)
+ seeker={
+  cx=cx,cy=cy,
+  rx=rx,ry=ry,
+  dx=0,dy=0,
+  dir_x=dir_x,
+  dir_y=dir_y,
+  spd=spd,
+  -- radians turn spd per frame
+  turn_spd=0.01,
+		target=target,
+		update=b_seeker_update,
+		nofollow_dist=8,
+	}
+	return seeker
+end
+
+function b_seeker_update(self)
+ if self.target then
+	 -- target dir vector
+	 local tx,ty,dist=dirto(
+	 	entx(self),
+	 	enty(self),
+	 	entx(self.target),
+	 	enty(self.target))
+	 
+	 -- disable following/seeking
+	 -- once its too close to the
+	 -- target
+	 if dist<self.nofollow_dist then
+	  self.target=nil
+	 end
+	 
+	 local perp_x=-self.dir_y
+	 local perp_y=self.dir_x
+	 local d=dot(perp_x,perp_y,tx,ty)
+	 if d<0 then
+	  self.dir_x,self.dir_y=rotate(self.dir_x,self.dir_y,0,0,self.turn_spd)
+	 elseif d>0 then
+	  self.dir_x,self.dir_y=rotate(self.dir_x,self.dir_y,0,0,-self.turn_spd)
+	 end
+	 
+	 perp_x=-self.dir_y
+	 perp_y=self.dir_x
+	 local new_d=dot(perp_x,perp_y,tx,ty)
+	 
+	 -- can this be replaced with sgn(d) != sgn(new_d)?
+	 --if d>0 and new_d<0 or d<0 and new_d>0 then
+	 if sgn(d) != sgn(new_d) then
+	  self.dir_x,self.dir_y=norm(tx,ty)
+	 end
+	end
+ 
+ self.dx=self.dir_x*self.spd
+ self.dy=self.dir_y*self.spd
+ 
+ b_move(self)
+end
+
+function b_move(self)
+ --
+ -- horizontal
+ self.rx+=self.dx
+	while self.rx>8 do
+	 self.rx-=8
+	 self.cx+=1
+	end
+	while self.rx<0 do
+	 self.rx+=8
+	 self.cx-=1
+	end
+	
+	--
+	-- vertical
+	self.ry+=self.dy
+	while self.ry>8 do
+	 self.ry-=8
+	 self.cy+=1
+	end
+	while self.ry<0 do
+	 self.ry+=8
+	 self.cy-=1
+	end
 end
 
 -->8

@@ -7,7 +7,7 @@ DONE doors dynamically rendering between rooms
 DONE doors teleport the player between rooms
 DONE precalculate door positions & sprites to save cycles
 DONE replace pea-shooter with low-damage Lazy Devs' style shooter
-TODO add heat-seeking shooter which shoots slowly with high damage
+DONE add heat-seeking shooter which shoots slowly with high damage
 TODO add "transformation" mechanic - player presses a button to transform between abilities/weapons
 TODO add health to the player
 TODO add damage & death to the player
