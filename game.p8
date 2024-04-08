@@ -2,48 +2,6 @@ pico-8 cartridge // http://www.pico-8.com
 version 42
 __lua__
 -- game
-ply_vert_spr=1
-ply_hori_spr=2
-ply={
- -- tile coords
-	cx=7,cy=7,
-	
-	-- tile fraction [0, 8]
-	rx=0,ry=0,
-	
-	-- velocity
-	dx=0,dy=0,
-	
-	-- shoot dir
-	sh_x=0,sh_y=-1,
-	
-	-- collision
-	radius=4,
-	
-	-- transformations
-	form=1,
-	trans=false,
-	
-	health=3,
-	
-	spr=1,
-	flip_y=false,flip_x=false,
-}
-ply_spd=100/60 -- px/sec
-shoot_spd_mult=0.85
-shoot_time=3 -- frame delay
-shoot_timer=0
-
-bullets={}
-spr_bullet=3
-spd_bullet=140/60 -- px/sec
-spd_seeker=1
-
-cell_x=3
-cell_y=3
-
-cam_x=64
-cam_y=64
 
 function ply_shoot()
  local bullet=nil
@@ -170,18 +128,85 @@ function _init()
 	poke(0x5f2d,0x1)
 	palt(6, true)
 	palt(0, false)
+ 
+ -- used for anti-cobblestoning
+ last_keys_bits=0
+ -- used for btnp non-repeat
+ last_keys=0
+ 
+ -- menu stuff
+	menu_idx=1
+	menu_counter=0
+	menu_noquit_counter=0
+	
+	-- player stuff
+	ply_vert_spr=1
+	ply_hori_spr=2
+	ply={
+	 -- tile coords
+		cx=7,cy=7,
+		
+		-- tile fraction [0, 8]
+		rx=0,ry=0,
+		
+		-- velocity
+		dx=0,dy=0,
+		
+		-- shoot dir
+		sh_x=0,sh_y=-1,
+		
+		-- collision
+		radius=4,
+		
+		-- transformations
+		form=1,
+		trans=false,
+		
+		health=3,
+		
+		spr=1,
+		flip_y=false,flip_x=false,
+	}
+	ply_spd=100/60 -- px/sec
+	shoot_spd_mult=0.85
+	shoot_time=3 -- frame delay
+	shoot_timer=0
+	
+	bullets={}
+	spr_bullet=3
+	spd_bullet=140/60 -- px/sec
+	spd_seeker=1
+	
+	cell_x=3
+	cell_y=3
+	
+	cam_x=64
+	cam_y=64
 
  local plan=floor_plans[1]
  floor=floor_from_plan(plan)
  room=floor[cell_x][cell_y]
- 
- -- used for anti-cobblestoning
- last_keys_bits=0
- last_keys=0
 end
 
 function _update60()
- if ply.health <=0 then return end
+ if ply.health <=0 then
+  if btnp(➡️) or btnp(⬅️) then
+   menu_idx=menu_idx==1 and 2 or 1
+  end
+  
+  if menu_noquit_counter>0 then
+   menu_noquit_counter-=1
+  end
+  
+  if btnp(❎) and menu_idx==2 then
+   menu_noquit_counter=150
+  end
+  
+  if btnp(❎) and menu_idx==1 then
+   _init()
+  end
+ 	return
+ end
 
  -- grab btn_lut-mapped input
  -- keys() is wasd
@@ -299,8 +324,23 @@ end
 function _draw()
 	cls(0)
 	if ply.health<=0 then
-	 print("YOU ARE DEAD,", 34, 58)
-	 print("NOT BIG SURPRISE", 28, 64)
+	 print("YOU ARE DEAD,", 38, 40, 7)
+	 print("NOT BIG SURPRISE", 32, 46, 7)
+	 
+	 -- centered on thirds 43, 85
+	 print("start", 33, 82)
+	 print("again", 33, 88)
+	 print("quit", 92, 85)
+	 
+	 if menu_idx==1 then
+	  print("❎", 33-9, 85)
+	 else
+	  print("❎", 92-9, 85)
+	 end
+	 
+	 if menu_noquit_counter>0 then
+	  print("you cant go...", 38, 64)
+	 end
 	 return
 	end
 
