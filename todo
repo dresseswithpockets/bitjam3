@@ -8,7 +8,7 @@ DONE doors teleport the player between rooms
 DONE precalculate door positions & sprites to save cycles
 DONE replace pea-shooter with low-damage Lazy Devs' style shooter
 DONE add heat-seeking shooter which shoots slowly with high damage
-TODO add "transformation" mechanic - player presses a button to transform between abilities/weapons
+DONE add "transformation" mechanic - player presses a button to transform between abilities/weapons
 DONE add health to the player
 DONE add damage & death to the player
 TODO add death screen with "START AGAIN" and "QUIT" options (funny ISAT reference)
@@ -44,6 +44,9 @@ TODO rapidfire bullet sprite (ddp style?, needs to fit 8 directions - flippable)
 DONE heart/health sprite
 TODO replace placeholder player sprite (8 direction - flippable)
 TODO replace placeholder tiles
+
+## biiiig stretch
+TODO candle detail sprite
 
 # sfx
 TODO player shooting sfx

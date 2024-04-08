@@ -20,6 +20,10 @@ ply={
 	-- collision
 	radius=4,
 	
+	-- transformations
+	form=1,
+	trans=false,
+	
 	health=3,
 	
 	spr=1,
@@ -33,6 +37,7 @@ shoot_timer=0
 bullets={}
 spr_bullet=3
 spd_bullet=140/60 -- px/sec
+spd_seeker=1
 
 cell_x=3
 cell_y=3
@@ -41,13 +46,21 @@ cam_x=64
 cam_y=64
 
 function ply_shoot()
-	add(bullets,
-		b_seeker(
+ local bullet=nil
+ if ply.form==1 then
+  bullet=b_linear(
+		 ply.cx,ply.cy,
+		 ply.sh_x*8,ply.sh_y*8,
+			ply.sh_x,ply.sh_y)
+ else
+  bullet=b_seeker(
 		 ply.cx,ply.cy,
 		 ply.sh_x*8,ply.sh_y*8,
 			ply.sh_x,ply.sh_y,
 			ply,
-			spd_bullet/2))
+			spd_seeker)
+ end
+	add(bullets,bullet)
 end
 
 function move_ent(ent)
@@ -163,6 +176,7 @@ function _init()
  room=floor[cell_x][cell_y]
  
  -- used for anti-cobblestoning
+ last_keys_bits=0
  last_keys=0
 end
 
@@ -172,15 +186,27 @@ function _update60()
  -- grab btn_lut-mapped input
  -- keys() is wasd
  -- btn() is ⬅️➡️⬆️⬇️
-	local key_bits=btn_lut[keys()&0b1111]
+ local keys_value=keys()
+	local key_bits=btn_lut[keys_value&0b1111]
 	local btn_bits=btn_lut[btn()&0b1111]
  ply.sh_x=dx_lut[btn_bits]
  ply.sh_y=dy_lut[btn_bits]
 	ply.shoot=ply.sh_x!=0 or ply.sh_y!=0
-	
-	use_spd=ply_spd
- if ply.shoot then
+
+	local use_spd=ply_spd
+	if ply.shoot then
  	use_spd*=shoot_spd_mult
+ end
+	
+	-- shift triggers transform
+ ply.trans=(last_keys&0b10000!=0b10000) and keys_value&0b10000==0b10000
+ if ply.trans then
+  -- dont shoot when transforming
+  ply.shoot=false
+  -- dont move when transforming
+  use_spd=0
+  -- todo: transform animation
+  ply.form=ply.form==1 and 2 or 1
  end
 	
 	-- updating player spd from
@@ -256,7 +282,7 @@ function _update60()
 	end
 	
 	-- anti-cobble if diagonal
-	if key_bits!=last_keys and key_bits>4 then
+	if key_bits!=last_keys_bits and key_bits>4 then
 	 ply.rx=flr(ply.rx)+0.5
 	 ply.ry=flr(ply.ry)+0.5
 	end
@@ -266,7 +292,8 @@ function _update60()
 	cam_y=enty(ply)
 	clamp_scroll_to_room()
 	
-	last_keys=key_bits
+	last_keys_bits=key_bits
+	last_keys=keys_value
 end
 
 function _draw()
@@ -313,6 +340,7 @@ function _draw()
 	end
 	
 	-- debug/test zone
+	print(ply.trans)
 end
 -->8
 -- ent & vectors util
@@ -420,7 +448,16 @@ function b_linear(cx,cy,rx,ry,dx,dy)
   rx=rx,ry=ry,
   dx=dx,dy=dy,
   update=b_move,
+  radius=2,
  }
+end
+
+function b_seeker_factory(cx,cy,rx,ry,dir_x,dir_y)
+ -- todo: get the nearest target candidate
+ -- todo: set speed to something reasonable
+	return b_seeker(
+		 cx,cy,rx,ry,dir_x,dir_y,
+			ply, spd_bullet/2)
 end
 
 function b_seeker(cx,cy,rx,ry,dir_x,dir_y,target,spd)
