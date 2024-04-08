@@ -194,23 +194,13 @@ function _init()
  room=floor[cell_x][cell_y]
 end
 
+
+
+-->8
+-- update
 function _update60()
  if ply.health <=0 then
-  if btnp(➡️) or btnp(⬅️) then
-   menu_idx=menu_idx==1 and 2 or 1
-  end
-  
-  if menu_noquit_counter>0 then
-   menu_noquit_counter-=1
-  end
-  
-  if btnp(❎) and menu_idx==2 then
-   menu_noquit_counter=150
-  end
-  
-  if btnp(❎) and menu_idx==1 then
-   _init()
-  end
+  update_dead()
  	return
  end
 
@@ -267,36 +257,7 @@ function _update60()
  	shoot_timer=shoot_time
  end
  
- for i=#bullets,1,-1 do
-  local bullet=bullets[i]
-  local bx,by=center(bullet)
- 	if bx<-500 or
-	 	 bx>500 or
-	 	 by<-500 or
-	 	 by>500 then
-   deli(bullets,i)
-  else
-   if not bullet:update() then
-    deli(bullets,i)
-   else
-    -- we do an n-scale dist
-    -- check before the real
-    -- radius-check. p8 uses
-    -- a fixed cap of like 32k
-    -- so its pretty easy to
-    -- cause an overflow when
-    -- checking large distances
-	   local px,py=center(ply)
-   	if check_dist(px,py,bx,by) then
-	    local dist=sqrdist(px,py,bx,by)
-	    if dist<bullet.radius+ply.radius then
-	     dmg_ply()
-	     deli(bullets,i)
-	    end
-	   end
-   end
-  end
- end
+ update_bullets()
 	
 	-- updating player pos from vel
 	cleft,cright,cup,cdown=move_ent(ply)
@@ -327,44 +288,88 @@ function _update60()
 	last_keys=keys_value
 end
 
+function update_dead()
+	if btnp(➡️) or btnp(⬅️) then
+  menu_idx=menu_idx==1 and 2 or 1
+ end
+ 
+ if menu_noquit_counter>0 then
+  menu_noquit_counter-=1
+ end
+ 
+ if btnp(❎) and menu_idx==2 then
+  menu_noquit_counter=150
+ end
+ 
+ if btnp(❎) and menu_idx==1 then
+  _init()
+ end
+end
+
+function update_bullets()
+	for i=#bullets,1,-1 do
+  local bullet=bullets[i]
+  local bx,by=center(bullet)
+ 	if bx<-500 or
+	 	 bx>500 or
+	 	 by<-500 or
+	 	 by>500 then
+   deli(bullets,i)
+  else
+   if not bullet:update() then
+    deli(bullets,i)
+   else
+    -- we do an n-scale dist
+    -- check before the real
+    -- radius-check. p8 uses
+    -- a fixed cap of like 32k
+    -- so its pretty easy to
+    -- cause an overflow when
+    -- checking large distances
+	   local px,py=center(ply)
+   	if check_dist(px,py,bx,by) then
+	    local dist=sqrdist(px,py,bx,by)
+	    if dist<bullet.radius+ply.radius then
+	     dmg_ply()
+	     deli(bullets,i)
+	    end
+	   end
+   end
+  end
+ end
+end
+-->8
+-- draw
 function _draw()
 	cls(0)
 	if ply.health<=0 then
-	 print("YOU ARE DEAD,", 38, 40, 7)
-	 print("NOT BIG SURPRISE", 32, 46, 7)
-	 
-	 -- centered on thirds 43, 85
-	 print("start", 33, 82)
-	 print("again", 33, 88)
-	 print("quit", 92, 85)
-	 
-	 if menu_idx==1 then
-	  print("❎", 33-9, 85)
-	 else
-	  print("❎", 92-9, 85)
-	 end
-	 
-	 if menu_noquit_counter>0 then
-	  print("you cant go...", 38, 64)
-	 end
+	 draw_dead_menu()
 	 return
 	end
 
 	camera(cam_x-64, cam_y-64)
-	
-	-- draw room
 	room.t.draw()
+ draw_player()
+	draw_bullets()
+	draw_doors()
+	
+	camera(0,0)
+	draw_ply_hp()
+	
+	-- debug/test zone
+end
 
- -- draw player ent
+function draw_player()
  spr(
   ply.spr,
   entx(ply),enty(ply),1,1,
   ply.flip_x,ply.flip_y)
  local px,py=center(ply)
  pset(px,py,8)
-	
-	-- draw bullets
-	for _,bullet in ipairs(bullets) do
+end
+
+function draw_bullets()
+ for _,bullet in ipairs(bullets) do
 		spr(
 		 spr_bullet,
 		 entx(bullet),
@@ -372,100 +377,38 @@ function _draw()
 		local bx,by=center(bullet)
 		pset(bx,by,9)
 	end
-	
-	-- draw doors
-	for _,l in ipairs(room.links) do
+end
+
+function draw_doors()
+ for _,l in ipairs(room.links) do
 	 spr(l.door.spr1,l.door.x1,l.door.y1,1,1,l.door.flip_x,l.door.flip_y)
 	 spr(l.door.spr1+1,l.door.x2,l.door.y2,1,1,l.door.flip_x,l.door.flip_y)
 	end
-	
-	camera(0,0)
-	-- draw health
+end
+
+function draw_ply_hp()
 	for i=0,ply.health-1 do
 	 spr(4,1+i*9,1)
 	end
-	
-	-- debug/test zone
-	print(ply.trans)
-end
--->8
--- ent & vectors util
-
--- before: 2088
--- after: 2069
-ply_spr_lut={2,2,1,1,2,2,2,2}
-ply_hori_lut={false,true,false,false,false,true,true}
-ply_vert_lut={[4]=true}
-
-function dot(x1,y1,x2,y2)
- return x1*x2+y1*y2
 end
 
-function sqrlen(x,y)
-	return x*x+y*y
-end
-
-function sqrdist(x1,y1,x2,y2)
- return sqrlen(x2-x1,y2-y1)
-end
-
-function check_dist(x1,y1,x2,y2,a)
- a=a or 32
- return abs(x2-x1)<=a and abs(y2-y1)<=a
-end
-
-function norm(x,y)
- local mag=sqrt(x*x+y*y)
- return x/mag,y/mag,mag
-end
-
-function dirto(fx,fy,tx,ty)
- return norm(tx-fx,ty-fy)
-end
-
-function rotate(x,y,cx,cy,a)
- local sina=sin(a)
- local cosa=cos(a)
- x-=cx
- y-=cy
- local rotx=cosa*x-sina*y
- local roty=sina*x+cosa*y
- rotx+=cx
- roty+=cy
- return rotx,roty
-end
-
-function entx(ent)
- return ent.cx*8+ent.rx
-end
-
-function enty(ent)
- return ent.cy*8+ent.ry
-end
-
-function center(ent)
- return ent.cx*8+ent.rx+4,
- 	ent.cy*8+ent.ry+4
-end
-
-function clamp_scroll_to_room()
- -- clamp camera to room
- local right=room.t.w*128-64
- local bottom=room.t.h*128-64
-
- -- left is always 64
- if cam_x<64 then
- 	cam_x=64
+function draw_dead_menu()
+	print("YOU ARE DEAD,", 38, 40, 7)
+ print("NOT BIG SURPRISE", 32, 46, 7)
+ 
+ -- centered on thirds 43, 85
+ print("start", 33, 82)
+ print("again", 33, 88)
+ print("quit", 92, 85)
+ 
+ if menu_idx==1 then
+  print("❎", 33-9, 85)
+ else
+  print("❎", 92-9, 85)
  end
- if cam_x>right then
-  cam_x=right
- end
- -- top is always 64
- if cam_y<64 then
-  cam_y=64
- end
- if cam_y>bottom then
-  cam_y=bottom
+ 
+ if menu_noquit_counter>0 then
+  print("you cant go...", 38, 64)
  end
 end
 -->8
@@ -484,112 +427,6 @@ function keys()
         (tonum(stat(28,22))<<3)|
         (tonum(stat(28,225))<<4)|
         (tonum(stat(28,44))<<5)
-end
-
--->8
--- bullet funcs
-function b_linear(cx,cy,rx,ry,dx,dy)
- return {
-  cx=cx,cy=cy,
-  rx=rx,ry=ry,
-  dx=dx,dy=dy,
-  update=b_move,
-  radius=2,
- }
-end
-
-function b_seeker_factory(cx,cy,rx,ry,dir_x,dir_y)
- -- todo: get the nearest target candidate
- -- todo: set speed to something reasonable
-	return b_seeker(
-		 cx,cy,rx,ry,dir_x,dir_y,
-			ply, spd_bullet/2)
-end
-
-function b_seeker(cx,cy,rx,ry,dir_x,dir_y,target,spd)
- seeker={
-  cx=cx,cy=cy,
-  rx=rx,ry=ry,
-  dx=0,dy=0,
-  dir_x=dir_x,
-  dir_y=dir_y,
-  spd=spd,
-  -- radians turn spd per frame
-  turn_spd=0.01,
-		target=target,
-		update=b_seeker_update,
-		nofollow_dist=7.5,
-		radius=2,
-	}
-	return seeker
-end
-
-function b_seeker_update(self)
- if self.target then
-	 -- target dir vector
-	 local sx,sy=center(self)
-	 local px,py=center(self.target)
-	 local tx,ty,dist=dirto(sx,sy,px,py)
-	 
-	 -- disable following/seeking
-	 -- once its too close to the
-	 -- target
-	 if dist<self.nofollow_dist then
-	  self.target=nil
-	 end
-	 
-	 local perp_x=-self.dir_y
-	 local perp_y=self.dir_x
-	 local d=dot(perp_x,perp_y,tx,ty)
-	 if d<0 then
-	  self.dir_x,self.dir_y=rotate(self.dir_x,self.dir_y,0,0,self.turn_spd)
-	 elseif d>0 then
-	  self.dir_x,self.dir_y=rotate(self.dir_x,self.dir_y,0,0,-self.turn_spd)
-	 end
-	 
-	 perp_x=-self.dir_y
-	 perp_y=self.dir_x
-	 local new_d=dot(perp_x,perp_y,tx,ty)
-	 
-	 -- can this be replaced with sgn(d) != sgn(new_d)?
-	 --if d>0 and new_d<0 or d<0 and new_d>0 then
-	 if sgn(d) != sgn(new_d) then
-	  self.dir_x,self.dir_y=norm(tx,ty)
-	 end
-	end
- 
- self.dx=self.dir_x*self.spd
- self.dy=self.dir_y*self.spd
- 
- b_move(self)
- return true
-end
-
-function b_move(self)
- --
- -- horizontal
- self.rx+=self.dx
-	while self.rx>8 do
-	 self.rx-=8
-	 self.cx+=1
-	end
-	while self.rx<0 do
-	 self.rx+=8
-	 self.cx-=1
-	end
-	
-	--
-	-- vertical
-	self.ry+=self.dy
-	while self.ry>8 do
-	 self.ry-=8
-	 self.cy+=1
-	end
-	while self.ry<0 do
-	 self.ry+=8
-	 self.cy-=1
-	end
-	return true
 end
 
 -->8
@@ -760,6 +597,192 @@ function ent_collide_room(ent)
 		ent.y=0
 	end
 end
+-->8
+-- ent & vectors util
+
+-- before: 2088
+-- after: 2069
+ply_spr_lut={2,2,1,1,2,2,2,2}
+ply_hori_lut={false,true,false,false,false,true,true}
+ply_vert_lut={[4]=true}
+
+function dot(x1,y1,x2,y2)
+ return x1*x2+y1*y2
+end
+
+function sqrlen(x,y)
+	return x*x+y*y
+end
+
+function sqrdist(x1,y1,x2,y2)
+ return sqrlen(x2-x1,y2-y1)
+end
+
+function check_dist(x1,y1,x2,y2,a)
+ a=a or 32
+ return abs(x2-x1)<=a and abs(y2-y1)<=a
+end
+
+function norm(x,y)
+ local mag=sqrt(x*x+y*y)
+ return x/mag,y/mag,mag
+end
+
+function dirto(fx,fy,tx,ty)
+ return norm(tx-fx,ty-fy)
+end
+
+function rotate(x,y,cx,cy,a)
+ local sina=sin(a)
+ local cosa=cos(a)
+ x-=cx
+ y-=cy
+ local rotx=cosa*x-sina*y
+ local roty=sina*x+cosa*y
+ rotx+=cx
+ roty+=cy
+ return rotx,roty
+end
+
+function entx(ent)
+ return ent.cx*8+ent.rx
+end
+
+function enty(ent)
+ return ent.cy*8+ent.ry
+end
+
+function center(ent)
+ return ent.cx*8+ent.rx+4,
+ 	ent.cy*8+ent.ry+4
+end
+
+function clamp_scroll_to_room()
+ -- clamp camera to room
+ local right=room.t.w*128-64
+ local bottom=room.t.h*128-64
+
+ -- left is always 64
+ if cam_x<64 then
+ 	cam_x=64
+ end
+ if cam_x>right then
+  cam_x=right
+ end
+ -- top is always 64
+ if cam_y<64 then
+  cam_y=64
+ end
+ if cam_y>bottom then
+  cam_y=bottom
+ end
+end
+-->8
+-- bullet funcs
+function b_linear(cx,cy,rx,ry,dx,dy)
+ return {
+  cx=cx,cy=cy,
+  rx=rx,ry=ry,
+  dx=dx,dy=dy,
+  update=b_move,
+  radius=2,
+ }
+end
+
+function b_seeker_factory(cx,cy,rx,ry,dir_x,dir_y)
+ -- todo: get the nearest target candidate
+ -- todo: set speed to something reasonable
+	return b_seeker(
+		 cx,cy,rx,ry,dir_x,dir_y,
+			ply, spd_bullet/2)
+end
+
+function b_seeker(cx,cy,rx,ry,dir_x,dir_y,target,spd)
+ seeker={
+  cx=cx,cy=cy,
+  rx=rx,ry=ry,
+  dx=0,dy=0,
+  dir_x=dir_x,
+  dir_y=dir_y,
+  spd=spd,
+  -- radians turn spd per frame
+  turn_spd=0.01,
+		target=target,
+		update=b_seeker_update,
+		nofollow_dist=7.5,
+		radius=2,
+	}
+	return seeker
+end
+
+function b_seeker_update(self)
+ if self.target then
+	 -- target dir vector
+	 local sx,sy=center(self)
+	 local px,py=center(self.target)
+	 local tx,ty,dist=dirto(sx,sy,px,py)
+	 
+	 -- disable following/seeking
+	 -- once its too close to the
+	 -- target
+	 if dist<self.nofollow_dist then
+	  self.target=nil
+	 end
+	 
+	 local perp_x=-self.dir_y
+	 local perp_y=self.dir_x
+	 local d=dot(perp_x,perp_y,tx,ty)
+	 if d<0 then
+	  self.dir_x,self.dir_y=rotate(self.dir_x,self.dir_y,0,0,self.turn_spd)
+	 elseif d>0 then
+	  self.dir_x,self.dir_y=rotate(self.dir_x,self.dir_y,0,0,-self.turn_spd)
+	 end
+	 
+	 perp_x=-self.dir_y
+	 perp_y=self.dir_x
+	 local new_d=dot(perp_x,perp_y,tx,ty)
+	 
+	 -- can this be replaced with sgn(d) != sgn(new_d)?
+	 --if d>0 and new_d<0 or d<0 and new_d>0 then
+	 if sgn(d) != sgn(new_d) then
+	  self.dir_x,self.dir_y=norm(tx,ty)
+	 end
+	end
+ 
+ self.dx=self.dir_x*self.spd
+ self.dy=self.dir_y*self.spd
+ 
+ b_move(self)
+ return true
+end
+
+function b_move(self)
+ --
+ -- horizontal
+ self.rx+=self.dx
+	while self.rx>8 do
+	 self.rx-=8
+	 self.cx+=1
+	end
+	while self.rx<0 do
+	 self.rx+=8
+	 self.cx-=1
+	end
+	
+	--
+	-- vertical
+	self.ry+=self.dy
+	while self.ry>8 do
+	 self.ry-=8
+	 self.cy+=1
+	end
+	while self.ry<0 do
+	 self.ry+=8
+	 self.cy-=1
+	end
+	return true
+end
+
 -->8
 -- floor plan presets
 

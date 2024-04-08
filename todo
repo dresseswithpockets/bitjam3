@@ -14,9 +14,6 @@ DONE add damage & death to the player
 DONE add death screen with "START AGAIN" and "QUIT" options (funny ISAT reference)
 DONE create 2 unique floor plans
 DONE add random floor plan selection when player starts the game
-TODO make player render centered
-TODO add door which transitions to a new floor
-TODO update floor plan selection to run whenever the player enters a new floor
 TODO add an "effect system", which prompts the user to choose an effect/upgrade, with some sample no-op effects to choose from
 TODO add effect/upgrade which makes transformations instant but permanently reduces the player's speed
 TODO add a basic enemy which just walks towards the player after they're within range, has medium touch-damage and medium health
@@ -24,6 +21,9 @@ TODO add an enemy which hops around sporadically and quickly, but has low health
 TODO add a slow-moving high-health enemy which tries to keep its distance from the player
 TODO add a boss room which always spawns a specified enemy
 TODO add boss enemy with bullet hell pattern attacks
+TODO make player render centered
+TODO add door which transitions to a new floor
+TODO update floor plan selection to run whenever the player enters a new floor
 
 ## biiiig stretch
 TODO add main menu
