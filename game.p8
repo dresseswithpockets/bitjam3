@@ -183,7 +183,7 @@ function _init()
 	cam_x=64
 	cam_y=64
 
- local plan=floor_plans[1]
+ local plan=rnd(floor_plans)
  floor=floor_from_plan(plan)
  room=floor[cell_x][cell_y]
 end
