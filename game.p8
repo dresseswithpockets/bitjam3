@@ -182,8 +182,14 @@ function _init()
 	
 	cam_x=64
 	cam_y=64
-
- local plan=rnd(floor_plans)
+	
+	dungeon={
+		rnd(floor_plans),
+		rnd(floor_plans),
+	}
+	floor_idx=1
+	
+	local plan=dungeon[floor_idx]
  floor=floor_from_plan(plan)
  room=floor[cell_x][cell_y]
 end
