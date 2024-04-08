@@ -597,8 +597,7 @@ function coord_square(x,y)
 end
 
 function room_long()
- map()
- --map(0, 16, 0, 0, 32, 16)
+ map(0, 16, 0, 0, 32, 16)
 end
 
 function coord_long(x,y)
@@ -777,67 +776,129 @@ d_down=1
 d_left=2
 d_right=3
 
-fp_1_43={
+fp_1_12={
  t=room_types.square,
  links={
-  {
-   dcx=0,dcy=0,
-   dir=d_left,
-   -- target room coords
-   trx=3,try=3,
-   -- target cell coords
-   tcx=1,tcy=0,
-  },
- }
+   {dcx=0,dcy=0,dir=d_down,trx=1,try=3,tcx=0,tcy=0,},
+ },
 }
-
-fp_1_33={
- t=room_types.corner_nw,
- links={
-  {
-   dcx=0,dcy=0,
-   dir=d_up,
-   -- target room coords
-   trx=3,try=2,
-   -- target cell coords
-   tcx=0,tcy=0,
-  },
-  {
-   dcx=1,dcy=0,
-   dir=d_right,
-   -- target room coords
-   trx=4,try=3,
-   -- target cell coords
-   tcx=0,tcy=0,
-  },
- }
-}
-
 fp_1_32={
  t=room_types.square,
  links={
-  {
-   dcx=0,dcy=0,
-   dir=d_down,
-   -- target room coords
-   trx=3,try=3,
-   -- target cell coords
-   tcx=0,tcy=0,
-  },
- }
+   {dcx=0,dcy=0,dir=d_right,trx=4,try=2,tcx=0,tcy=0,},
+ },
+}
+fp_1_42={
+ t=room_types.corner_nw,
+ links={
+   {dcx=0,dcy=0,dir=d_left,trx=3,try=2,tcx=0,tcy=0,},
+   {dcx=0,dcy=1,dir=d_down,trx=4,try=4,tcx=0,tcy=0,},
+   {dcx=0,dcy=1,dir=d_left,trx=3,try=3,tcx=0,tcy=0,},
+ },
+}
+fp_1_13={
+ t=room_types.long,
+ links={
+   {dcx=0,dcy=0,dir=d_down,trx=1,try=4,tcx=0,tcy=0,},
+   {dcx=0,dcy=0,dir=d_up,trx=1,try=2,tcx=0,tcy=0,},
+   {dcx=1,dcy=0,dir=d_right,trx=3,try=3,tcx=0,tcy=0,},
+ },
+}
+fp_1_33={
+ t=room_types.square,
+ links={
+   {dcx=0,dcy=0,dir=d_left,trx=1,try=3,tcx=1,tcy=0,},
+   {dcx=0,dcy=0,dir=d_right,trx=4,try=2,tcx=0,tcy=1,},
+ },
+}
+fp_1_14={
+ t=room_types.square,
+ links={
+   {dcx=0,dcy=0,dir=d_up,trx=1,try=3,tcx=0,tcy=0,},
+   {dcx=0,dcy=0,dir=d_down,trx=1,try=5,tcx=0,tcy=0,},
+ },
+}
+fp_1_44={
+ t=room_types.square,
+ links={
+   {dcx=0,dcy=0,dir=d_up,trx=4,try=2,tcx=0,tcy=1,},
+ },
+}
+fp_1_15={
+ t=room_types.square,
+ links={
+   {dcx=0,dcy=0,dir=d_up,trx=1,try=4,tcx=0,tcy=0,},
+ },
+}
+fp_1={
+ {{},fp_1_12,fp_1_13,fp_1_14,fp_1_15,},
+ {{},{},{},{},{},},
+ {{},fp_1_32,fp_1_33,{},{},},
+ {{},fp_1_42,{},fp_1_44,{},},
+ {{},{},{},{},{},},
 }
 
--- col-major ([x][y])
-fp_1={
- {{},{},{},{},{}},
- {{},{},{},{},{}},
- {{},fp_1_32,fp_1_33,{},{}},
- {{},{},fp_1_43,{},{}},
- {{},{},{},{},{}},
+
+
+fp_2_21={
+ t=room_types.square,
+ links={
+   {dcx=0,dcy=0,dir=d_down,trx=2,try=2,tcx=0,tcy=0,},
+   {dcx=0,dcy=0,dir=d_right,trx=3,try=1,tcx=0,tcy=0,},
+ },
 }
+fp_2_31={
+ t=room_types.square,
+ links={
+   {dcx=0,dcy=0,dir=d_left,trx=2,try=1,tcx=0,tcy=0,},
+ },
+}
+fp_2_22={
+ t=room_types.tall,
+ links={
+   {dcx=0,dcy=0,dir=d_up,trx=2,try=1,tcx=0,tcy=0,},
+   {dcx=0,dcy=1,dir=d_right,trx=3,try=3,tcx=0,tcy=0,},
+ },
+}
+fp_2_33={
+ t=room_types.square,
+ links={
+   {dcx=0,dcy=0,dir=d_left,trx=2,try=2,tcx=0,tcy=1,},
+   {dcx=0,dcy=0,dir=d_down,trx=3,try=4,tcx=0,tcy=0,},
+ },
+}
+fp_2_34={
+ t=room_types.long,
+ links={
+   {dcx=0,dcy=0,dir=d_down,trx=3,try=5,tcx=0,tcy=0,},
+   {dcx=0,dcy=0,dir=d_up,trx=3,try=3,tcx=0,tcy=0,},
+   {dcx=1,dcy=0,dir=d_right,trx=5,try=4,tcx=0,tcy=0,},
+ },
+}
+fp_2_54={
+ t=room_types.square,
+ links={
+   {dcx=0,dcy=0,dir=d_left,trx=3,try=4,tcx=1,tcy=0,},
+ },
+}
+fp_2_35={
+ t=room_types.square,
+ links={
+   {dcx=0,dcy=0,dir=d_up,trx=3,try=4,tcx=0,tcy=0,},
+ },
+}
+fp_2={
+ {{},{},{},{},{},},
+ {fp_2_21,fp_2_22,{},{},{},},
+ {fp_2_31,{},fp_2_33,fp_2_34,fp_2_35,},
+ {{},{},{},{},{},},
+ {{},{},{},fp_2_54,{},},
+}
+
 
 floor_plans={
- fp_1
+ fp_1,
+ fp_2
 }
 
 function precalc_doors()
