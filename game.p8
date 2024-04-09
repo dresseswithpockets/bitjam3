@@ -120,8 +120,17 @@ function goto_first_room_dir(dir)
  end
 end
 
-function dmg_ply()
- ply.health -= 1
+function dmg_ply(n)
+ ply.health-=n or 1
+end
+
+function present_lvlup()
+ menu_idx=1
+ show_lvlup_menu=true
+ lvlup_choices={
+ 	next_upgrade(),
+ 	next_upgrade()
+ }
 end
 
 function _init()
@@ -136,8 +145,9 @@ function _init()
  
  -- menu stuff
 	menu_idx=1
-	menu_counter=0
 	menu_noquit_counter=0
+	
+	show_lvlup_menu=false
 	
 	-- player stuff
 	ply_vert_spr=1
@@ -161,6 +171,7 @@ function _init()
 		-- transformations
 		form=1,
 		trans=false,
+		trans_timer=0,
 		
 		health=3,
 		
@@ -168,14 +179,19 @@ function _init()
 		flip_y=false,flip_x=false,
 	}
 	ply_spd=100/60 -- px/sec
-	shoot_spd_mult=0.85
-	shoot_time=3 -- frame delay
+	ply_spd_shoot_mult=0.85
+	shoot_time=4 -- frame delay
 	shoot_timer=0
 	
 	bullets={}
 	spr_bullet=3
 	spd_bullet=140/60 -- px/sec
 	spd_seeker=1
+	
+ ply_dmg=2
+	trans_quad_time=0
+	trans_delay=20
+	trans_self_dmg=0
 	
 	cell_x=3
 	cell_y=3
@@ -192,6 +208,10 @@ function _init()
 	local plan=dungeon[floor_idx]
  floor=floor_from_plan(plan)
  room=floor[cell_x][cell_y]
+ 
+ -- todo: do we really want
+ --  to present this on startup?
+ present_lvlup()
 end
 
 
@@ -202,6 +222,27 @@ function _update60()
  if ply.health <=0 then
   update_dead()
  	return
+ end
+ 
+ if show_lvlup_menu then
+  update_lvlup_menu()
+  return
+ end
+
+ if ply.trans then
+  -- todo: spawn trans
+  --  particles or something
+  -- for an animation/effect
+	 ply.trans=false
+	 ply.trans_timer=1
+ end
+
+ if ply.trans_timer>0 then
+  ply.trans_timer-=1
+  if ply.trans_timer==0 then
+   ply.form=ply.form==1and 2or 1
+   dmg_ply(trans_self_dmg)
+  end
  end
 
  -- grab btn_lut-mapped input
@@ -216,18 +257,24 @@ function _update60()
 
 	local use_spd=ply_spd
 	if ply.shoot then
- 	use_spd*=shoot_spd_mult
+ 	use_spd*=ply_spd_shoot_mult
  end
 	
 	-- shift triggers transform
  ply.trans=(last_keys&0b10000!=0b10000) and keys_value&0b10000==0b10000
  if ply.trans then
+ 	ply.trans_timer=trans_delay
   -- dont shoot when transforming
   ply.shoot=false
   -- dont move when transforming
   use_spd=0
-  -- todo: transform animation
-  ply.form=ply.form==1 and 2 or 1
+ end
+ 
+ if ply.trans_timer>0 then
+  -- dont shoot when transforming
+  ply.shoot=false
+  -- dont move when transforming
+  use_spd=0
  end
 	
 	-- updating player spd from
@@ -306,6 +353,17 @@ function update_dead()
  end
 end
 
+function update_lvlup_menu()
+ if btnp(⬆️) or btnp(⬇️) then
+  menu_idx=menu_idx==1 and 2 or 1
+ end
+ 
+ if btnp(🅾️) then
+  lvlup_choices[menu_idx].exec()
+  show_lvlup_menu=false
+ end
+end
+
 function update_bullets()
 	for i=#bullets,1,-1 do
   local bullet=bullets[i]
@@ -356,6 +414,10 @@ function _draw()
 	camera(0,0)
 	draw_ply_hp()
 	
+	if show_lvlup_menu then
+	 draw_lvlup_menu()
+	end
+	
 	-- debug/test zone
 end
 
@@ -390,6 +452,28 @@ function draw_ply_hp()
 	for i=0,ply.health-1 do
 	 spr(4,1+i*9,1)
 	end
+end
+
+function draw_lvlup_menu()
+ rect(6,30,124,90,7)
+ rectfill(7,31,123,89,0)
+ 
+ local c1=lvlup_choices[1]
+ local c2=lvlup_choices[2]
+ 
+ for i,v in ipairs(c1.desc) do
+  print(v,10,28+i*6,7)
+ end
+ 
+ for i,v in ipairs(c2.desc) do
+  print(v,10,58+i*6,7)
+ end
+ 
+ if menu_idx==1 then
+	 rect(8,32,120,34+#c1.desc*6,7)
+	else
+	 rect(8,62,120,64+#c2.desc*6,7)
+ end
 end
 
 function draw_dead_menu()
@@ -993,6 +1077,87 @@ function floor_from_plan(plan)
  end
  return floor
 end
+-->8
+-- upgrades
+
+function u_quad_dmg_exec()
+ -- 5 seconds of quad dmg
+ trans_quad_time=300
+ -- no trans delay
+ trans_delay=0
+ -- +1 self-dmg on trans
+ trans_self_dmg+=1
+end
+
+function u_heavy_hits_exec()
+ -- increase ply damage
+ ply_dmg+=1
+ -- increase trans delay
+ trans_delay+=15
+end
+
+function u_rapid_fire_exec()
+ -- increase ply shoot speed
+ shoot_time-=1
+ -- todo: make the shoot speed
+ --  weapon-specific
+ -- decrease ply move speed
+ ply_spd*=0.8
+end
+
+u_quad_dmg={
+ desc={
+ 	"+trans gives quad-dmg",
+ 	"+trans is instant",
+ 	"-you hit yourself, idiot!!",
+ },
+ exec=u_quad_dmg_exec,
+}
+
+u_heavy_hits={
+ desc={
+  "+more dmg",
+  "-slow transform",
+ },
+ exec=u_heavy_hits_exec,
+}
+
+u_rapid_fire={
+ desc={
+  "+shoot faster",
+  "-move slower",
+ },
+ exec=u_rapid_fire_exec,
+}
+
+-- shuffle bag of all upgrades
+upgrades={
+ u_rapid_fire,
+ u_heavy_hits,
+ u_quad_dmg,
+}
+
+upgrade_idx=1
+
+function next_upgrade()
+ local item=upgrades[upgrade_idx]
+ upgrade_idx+=1
+ if upgrade_idx>#upgrades then
+  upgrade_idx=1
+  shuffle(upgrades)
+ end
+ return item
+end
+
+function shuffle(t)
+ for n=1,#t*2 do -- #t*2 times seems enough
+  local a,b=flr(1+rnd(#t)),flr(1+rnd(#t))
+  t[a],t[b]=t[b],t[a]
+ end
+ return t
+end
+
+shuffle(upgrades)
 __gfx__
 66666666666776666666777666666666677667766666666676666667667666666666676666666777776666666666667777666666666667777766666666666666
 66666666667007666667000766666666700770076776677667766776667760666606776666677777777766666666777777776666666777777777666666666666
