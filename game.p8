@@ -28,19 +28,32 @@ function move_ent(ent)
  --
  -- horizontal
  ent.rx+=ent.dx
- local cx,cy=room.t.coord(ent.cx+1,ent.cy)
  local col_left,col_right=false,false
- if fget(mget(cx,cy),7) and ent.rx>0 then
-  ent.dx=0
-  ent.rx=0
-  col_right=true
- end
- local cx,cy=room.t.coord(ent.cx-1,ent.cy)
- if fget(mget(cx,cy),7) and ent.rx<0 then
-  ent.dx=0
-  ent.rx=0
-  col_left=true
- end
+ if room.boss then
+  if ent.cx==15 and ent.rx>0 then
+   ent.dx=0
+	  ent.rx=0
+	  col_right=true
+	 end
+	 if ent.cx==0 and ent.rx<0 then
+	  ent.dx=0
+	  ent.rx=0
+	  col_left=true
+	 end
+	else
+  local cx,cy=room.t.coord(ent.cx+1,ent.cy)
+	 if fget(mget(cx,cy),7) and ent.rx>0 then
+	  ent.dx=0
+	  ent.rx=0
+	  col_right=true
+	 end
+	 local cx,cy=room.t.coord(ent.cx-1,ent.cy)
+	 if fget(mget(cx,cy),7) and ent.rx<0 then
+	  ent.dx=0
+	  ent.rx=0
+	  col_left=true
+	 end
+	end
  while ent.rx>8 do
   ent.rx-=8
   ent.cx+=1
@@ -53,19 +66,32 @@ function move_ent(ent)
  --
  -- vertical
  ent.ry+=ent.dy
- local cx,cy=room.t.coord(ent.cx,ent.cy+1)
  local col_up,col_down=false,false
- if fget(mget(cx,cy),7) and ent.ry>0 then
-  ent.dy=0
-  ent.ry=0
-  col_down=true
- end
- local cx,cy=room.t.coord(ent.cx,ent.cy-1)
- if fget(mget(cx,cy),7) and ent.ry<0 then
-  ent.dy=0
-  ent.ry=0
-  col_up=true
- end
+ if room.boss then
+  if ent.cy==15 and ent.ry>0 then
+   ent.dy=0
+	  ent.ry=0
+	  col_down=true
+	 end
+	 if ent.cy==0 and ent.ry<0 then
+	  ent.dy=0
+	  ent.ry=0
+	  col_up=true
+	 end
+	else
+	 local cx,cy=room.t.coord(ent.cx,ent.cy+1)
+	 if fget(mget(cx,cy),7) and ent.ry>0 then
+	  ent.dy=0
+	  ent.ry=0
+	  col_down=true
+	 end
+	 local cx,cy=room.t.coord(ent.cx,ent.cy-1)
+	 if fget(mget(cx,cy),7) and ent.ry<0 then
+	  ent.dy=0
+	  ent.ry=0
+	  col_up=true
+	 end
+	end
  while ent.ry>8 do
   ent.ry-=8
   ent.cy+=1
@@ -77,8 +103,20 @@ function move_ent(ent)
  return col_left,col_right,col_up,col_down
 end
 
+function begin_boss()
+ 
+end
+
 function goto_room(rx,ry,tcx,tcy,dir)
  room=floor[rx][ry]
+ if room.boss then
+  ply.rx=4
+  ply.ry=4
+  ply.cx=7
+  ply.cy=11
+  begin_boss()
+  return
+ end
  local ix=tcx*16
  local iy=tcy*16
  local cx,cy,rx,ry=0,0,0,0
@@ -220,7 +258,7 @@ function _init()
  local plan=dungeon[floor_idx]
  floor=floor_from_plan(plan)
  room=floor[cell_x][cell_y]
- add(room.enemies,e_heavy(2,2))
+ --add(room.enemies,e_heavy(2,2))
  
  -- todo: do we really want
  --  to present this on startup?
@@ -312,14 +350,16 @@ function _update60()
  cleft,cright,cup,cdown=move_ent(ply)
  
  -- test if player touching doors
- if cleft then
-  goto_first_room_dir(d_left)
- elseif cright then
-  goto_first_room_dir(d_right)
- elseif cup then
-  goto_first_room_dir(d_up)
- elseif cdown then
-  goto_first_room_dir(d_down)
+ if not room.boss then
+	 if cleft then
+	  goto_first_room_dir(d_left)
+	 elseif cright then
+	  goto_first_room_dir(d_right)
+	 elseif cup then
+	  goto_first_room_dir(d_up)
+	 elseif cdown then
+	  goto_first_room_dir(d_down)
+	 end
  end
  
  -- anti-cobble if diagonal
@@ -459,13 +499,17 @@ function _draw()
  end
 
  camera(cam_x-64, cam_y-64)
- room.t.draw()
+ if room.boss then
+  draw_boss_room()
+ else
+  room.t.draw()
+  draw_doors()
+ end
  if (ply.iframes%10)<7 then
   draw_player()
  end
  draw_bullets()
  draw_enemies()
- draw_doors()
  
  camera(0,0)
  draw_ply_hp()
@@ -475,6 +519,11 @@ function _draw()
  end
  
  -- debug/test zone
+end
+
+function draw_boss_room()
+ map(1,1,1,1,13,13)
+ rect(0,0,127,127,7)
 end
 
 function draw_player()
@@ -1200,9 +1249,31 @@ fp_2={
 }
 
 
+fp_3_32={
+ t=room_types.square,
+ links={
+   {dcx=0,dcy=0,dir=d_down,trx=3,try=3,tcx=0,tcy=0,},
+ },
+}
+fp_3_33={
+ t=room_types.square,
+ links={
+   {dcx=0,dcy=0,dir=d_up,trx=3,try=2,tcx=0,tcy=0,},
+ },
+}
+fp_3={
+ {{},{},{},{},{},},
+ {{},{},{},{},{},},
+ {{},fp_3_32,fp_3_33,{},{},},
+ {{},{},{},{},{},},
+ {{},{},{},{},{},},
+}
+
+
 floor_plans={
- fp_1,
- fp_2
+ --fp_1,
+ --fp_2,
+ fp_3,
 }
 
 function precalc_doors()
@@ -1257,15 +1328,17 @@ precalc_doors()
 function floor_from_plan(plan)
  local ends={}
  local floor={}
- for _,col in ipairs(plan) do
+ for x,col in ipairs(plan) do
   local col_rooms={}
-  for _,cell in ipairs(col) do
+  for y,cell in ipairs(col) do
    local room={
     t=cell.t,
     links=cell.links,
     enemies={},
    }
-   if #room.links==1 then
+   -- only add dead end room
+   -- if its not the center room
+   if cell.links and #cell.links==1 and not (x==3 and y==3) then
     add(ends,room)
    end
    add(col_rooms,room)
