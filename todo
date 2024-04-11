@@ -35,6 +35,17 @@ TODO make jumpers move away from the walls on average, dont let them cling to th
 TODO investigate if using a vector class would save tokens
 TODO investigate merging check_dist and sqrdist
 TODO add a flag for bullet clusters which dont get deleted after they damage the player
+TODO rework heavy enemy to use a state machine for Move-Towards-Player, and Keep-Distance-And-Shoot states.
+TODO more upgrades!
+
+## boss 1 design
+TODO add "dead-end" flag to rooms. Dead ends can be picked for use as special rooms (e.g. Boss, Shop, Item, Upgrade, etc)
+TODO add boss room, which has no walls and collision at 0,0,128,128
+TODO add boss-room-entering animation - dither fades to white, dither fades back with player on bottom third, boss on top third.
+TODO boss stage 1: shoots simple cluster projectiles towards player
+TODO boss stage 2: fires rotating multi clusters at her position, with a slowly increasing radius and a scaled rotation speed. the rotation speed is angular, not linear, so the actual linear speed scales at a rate of 2pi with respect to the radius, so we need to set it to radius/2pi
+TODO boss stage 3: both 1 and 2 at the same time, at slightly faster rates. boss moves a bit faster too.
+TODO funny explosion when boss dies :3
 
 ## biiiig stretch
 DONE fix cobblestoning
@@ -45,6 +56,7 @@ TODO add additional unique floor plans
 TODO make rapid fire weapon alternating
 TODO AABB checks might be faster than sqrdist checks
 TODO use a bullet pool to ensure we never go over the bullet limit
+TODO toggle-able minimap which shows rooms discovered, their shapes, and room types if known.
 
 # art
 DONE placeholder player
@@ -52,7 +64,7 @@ DONE placeholder bullet
 DONE placeholder tiles
 DONE "basic" enemy sprite
 DONE "crazy" enemy sprite
-TODO "heavy" enemy sprite
+DONE "heavy" enemy sprite
 DONE boss sprite
 DONE heat seeking bullet sprite (8 directions - flippable)
 DONE rapidfire bullet sprite (ddp style?, needs to fit 8 directions - flippable)
@@ -66,12 +78,19 @@ TODO a sprite representing quad damage to render on the players HUD whenever the
 TODO alternate player sprites for mode/transformation
 TODO make linear projectiles thinner
 TODO a sprite for each upgrade, which we can render on the players HUD as they unlock more
+TODO minimap sprite representing a boss room/door (like a skull or something)
 
 # sfx
-TODO player shooting sfx
+TODO menu cursor move sfx
+TODO menu item select sfx
+TODO player light shot sfx
+TODO player seeker/heavy shot sfx
 TODO player take damage sfx
 TODO player moving sfx (?)
 TODO player enter/exit door SFX
+TODO heavy enemy shot sfx (could probably be the same as the player's heavy shot sfx)
+TODO boss cluster shot sfx (could probably be the same as the player's light shot sfx)
+TODO boss death SFX (a funny explosion, pawbably)
 
 # music
 TODO a simple ambient loop
