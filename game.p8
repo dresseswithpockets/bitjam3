@@ -189,9 +189,9 @@ function _init()
   spr=1,
   flip_y=false,flip_x=false,
  }
- ply_spd=100/60 -- px/sec
+ ply_spd=75/60 -- px/sec
  ply_spd_shoot_mult=0.85
- shoot_time=5 -- frame delay
+ shoot_time=15 -- frame delay
  shoot_timer=0
  
  bullets={}
@@ -361,7 +361,7 @@ function update_lvlup_menu()
 end
 
 function update_nearest_enemy()
- local min_dist=500
+ local min_dist=32767
  local px,py=center(ply)
  for _,e in ipairs(room.enemies) do
   local ex,ey=center(e)
@@ -491,12 +491,31 @@ function draw_player()
  pset(px,py,8)
 end
 
+bul_spr_lut={
+ {1,true,false}, -- 0
+ {2,true,false}, -- 1
+ {0,false,false},-- 2
+ {2,false,false},-- 3
+ {1,false,false},-- 4
+ {2,false,true}, -- 5
+ {0,false,true},-- 6
+ {2,true,true},-- 7
+ {1,true,false}, -- 8
+}
+
 function draw_bullets()
  for _,bullet in ipairs(bullets) do
+  local angle=atan2(bullet.dx, bullet.dy)
+  angle+=0.0625 -- [0.0625,1.0625)
+  angle=flr(angle*8) -- [0,8]
+  local bspr=bullet.base_spr
+  local lut=bul_spr_lut[angle+1]
   spr(
-   spr_bullet,
+   bspr+lut[1],
    entx(bullet),
-   enty(bullet))
+   enty(bullet),
+   1, 1,
+   lut[2], lut[3])
   local bx,by=center(bullet)
   pset(bx,by,9)
  end
@@ -829,6 +848,7 @@ function b_linear(cx,cy,rx,ry,dx,dy,team)
   cx=cx,cy=cy,
   rx=rx,ry=ry,
   dx=dx,dy=dy,
+  base_spr=48,
   update=b_move,
   radius=2,
   team=team,
@@ -841,6 +861,7 @@ function b_seeker(cx,cy,rx,ry,dir_x,dir_y,target,spd,team)
   cx=cx,cy=cy,
   rx=rx,ry=ry,
   dx=0,dy=0,
+  base_spr=32,
   dir_x=dir_x,
   dir_y=dir_y,
   spd=spd,
