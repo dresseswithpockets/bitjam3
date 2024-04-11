@@ -30,6 +30,7 @@ TODO add variation to floor plans by randomly flipping them horizontally and ver
 TODO add door which transitions to a new floor
 TODO update floor plan selection to run whenever the player enters a new floor
 TODO enemy death gibs with some bounciness/physics
+TODO make jumpers move away from the walls on average, dont let them cling to the walls
 
 ## biiiig stretch
 DONE fix cobblestoning
@@ -56,9 +57,12 @@ DONE heart/health sprite
 TODO replace placeholder player sprite (8 direction - flippable)
 TODO sprites/particles for a transformation effect (this could be smoke particles, or anything really that conceals the player)
 TODO replace placeholder tiles
+TODO a sprite representing quad damage to render on the players HUD whenever they have quad damage from transforming
 
 ## biiiig stretch
 TODO alternate player sprites for mode/transformation
+TODO make linear projectiles thinner
+TODO a sprite for each upgrade, which we can render on the players HUD as they unlock more
 
 # sfx
 TODO player shooting sfx
