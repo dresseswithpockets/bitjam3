@@ -41,11 +41,11 @@ function move_ent(ent)
   ent.rx=0
   col_left=true
  end
- while ply.rx>8 do
+ while ent.rx>8 do
   ent.rx-=8
   ent.cx+=1
  end
- while ply.rx<0 do
+ while ent.rx<0 do
   ent.rx+=8
   ent.cx-=1
  end
@@ -220,7 +220,7 @@ function _init()
  local plan=dungeon[floor_idx]
  floor=floor_from_plan(plan)
  room=floor[cell_x][cell_y]
- add(room.enemies,e_walker(2,2))
+ add(room.enemies,e_jumper(2,2))
  
  -- todo: do we really want
  --  to present this on startup?
@@ -425,7 +425,11 @@ function update_bullets()
       local dist=sqrdist(ex,ey,bx,by)
 	     local min_rad=bullet.radius+e.radius
 	     if dist<min_rad*min_rad then
-	      if not e.dmg(ply_dmg) then
+	      local dmg=ply_dmg*bullet.dmg_mult
+	      if trans_quad_timer>0 then
+	       dmg*=4
+	      end
+	      if not e.dmg(dmg) then
 	       deli(room.enemies,ei)
 	      end
 	      deli(bullets,i)
@@ -777,7 +781,10 @@ function sqrdist(x1,y1,x2,y2)
 end
 
 function check_dist(x1,y1,x2,y2,a)
- a=a or 32
+ -- 179 is the smallest amount we
+ -- can square (e.g. in a sqrdist check)
+ -- before overflowing in p8
+ a=a or 179
  return abs(x2-x1)<=a and abs(y2-y1)<=a
 end
 
@@ -856,9 +863,10 @@ function b_linear(cx,cy,rx,ry,dx,dy,team)
   dx=dx,dy=dy,
   base_spr=48,
   update=b_move,
-  radius=2,
+  radius=1,
   team=team,
   rate_mult=1,
+  dmg_mult=1,
  }
 end
 
@@ -876,9 +884,10 @@ function b_seeker(cx,cy,rx,ry,dir_x,dir_y,target,spd,team)
   target=target,
   update=b_seeker_update,
   nofollow_dist=7.5,
-  radius=2,
+  radius=1,
   team=team,
   rate_mult=4,
+  dmg_mult=4,
  }
  return seeker
 end
@@ -1277,6 +1286,77 @@ function e_walker(cx,cy)
 	 local y=flr(enty(self))+0.5
 	 local flip_x=x<entx(ply)
 	 spr(39,x,y,2,2,flip_x,false)
+ end
+ 
+ function self.dmg(n)
+  self.health-=n
+  return self.health>0
+ end
+ 
+ return self
+end
+
+function e_jumper(cx,cy)
+ self={
+  cx=cx,cy=cy,
+  rx=0,ry=0,
+  dx=0,dy=0,
+  -- collision
+  radius=2,
+  ox=2,oy=2,
+  w=4,h=4,
+  
+  health=30,
+  
+  dir_x=0,dir_y=0,
+  jump_spd=128/60,
+  jump_damp=0.96,
+  jump_timer=50,
+  jump_time=50,
+  jump_ply_chance=0.25,
+  jump_perp_chance=0.5,
+ }
+ 
+ function self.update()
+	 local px,py=center(ply)
+  self.jump_timer-=1
+  if self.jump_timer==0 then
+   local ex,ey=center(self)
+   local choice=rnd()
+   local near_ply=check_dist(ex,ey,px,py)
+   if choice < self.jump_ply_chance and
+      near_ply then
+    self.dir_x,self.dir_y=dirto(ex,ey,px,py)
+   elseif choice < self.jump_perp_chance and
+      near_ply then
+    local dir_x,dir_y=dirto(ex,ey,px,py)
+    self.dir_x=-dir_y
+    self.dir_y=dir_x
+   else
+    -- todo: move away from walls
+    --  on average
+	   local a=rnd()
+	   self.dir_x=cos(a)
+	   self.dir_y=sin(a)
+	  end
+   self.dx=self.dir_x*self.jump_spd
+   self.dy=self.dir_y*self.jump_spd
+   self.jump_timer=self.jump_time
+  end
+	 move_ent(self)
+	 self.dx*=self.jump_damp
+	 self.dy*=self.jump_damp
+	 local ex,ey=center(self)
+	 if aabb(self,ply) then
+	  dmg_ply()
+	 end
+ end
+ 
+ function self.draw()
+	 local x=flr(entx(self))+0.5
+	 local y=flr(enty(self))+0.5
+	 local flip_x=x<entx(ply)
+	 spr(6,x,y,1,1,flip_x,false)
  end
  
  function self.dmg(n)
