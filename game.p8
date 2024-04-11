@@ -1255,18 +1255,27 @@ end
 precalc_doors()
 
 function floor_from_plan(plan)
+ local ends={}
  local floor={}
  for _,col in ipairs(plan) do
   local col_rooms={}
   for _,cell in ipairs(col) do
-   add(col_rooms,{
+   local room={
     t=cell.t,
     links=cell.links,
     enemies={},
-   })
+   }
+   if #room.links==1 then
+    add(ends,room)
+   end
+   add(col_rooms,room)
   end
   add(floor,col_rooms)
  end
+ -- pick random room for boss
+ -- room
+ local boss_room=rnd(ends)
+ boss_room.boss=true
  return floor
 end
 -->8

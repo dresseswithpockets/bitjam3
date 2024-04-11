@@ -37,9 +37,10 @@ TODO investigate merging check_dist and sqrdist
 TODO add a flag for bullet clusters which dont get deleted after they damage the player
 TODO rework heavy enemy to use a state machine for Move-Towards-Player, and Keep-Distance-And-Shoot states.
 TODO more upgrades!
+TODO lock doors when player enters a new room, until player defeats all enemies in the room
 
 ## boss 1 design
-TODO add "dead-end" flag to rooms. Dead ends can be picked for use as special rooms (e.g. Boss, Shop, Item, Upgrade, etc)
+DONE add "dead-end" flag to rooms. Dead ends can be picked for use as special rooms (e.g. Boss, Shop, Item, Upgrade, etc)
 TODO add boss room, which has no walls and collision at 0,0,128,128
 TODO add boss-room-entering animation - dither fades to white, dither fades back with player on bottom third, boss on top third.
 TODO boss stage 1: shoots simple cluster projectiles towards player
