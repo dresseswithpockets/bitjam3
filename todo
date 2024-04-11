@@ -19,7 +19,8 @@ DONE add a basic enemy which just walks towards the player after they're within 
 DONE update bullets to use custom sprites
 DONE make `trans_quad_time` actually do something
 DONE add an enemy which hops around sporadically and quickly, but has low health & does low touch-damage
-TODO add a slow-moving high-health enemy which tries to keep its distance from the player
+DONE add multi/cluster bullet
+DONE add a slow-moving high-health enemy which tries to keep its distance from the player
 TODO add a boss room which always spawns a specified enemy
 TODO add boss enemy with bullet hell pattern attacks
 TODO add shooting-induced knockback to player
@@ -31,10 +32,12 @@ TODO add door which transitions to a new floor
 TODO update floor plan selection to run whenever the player enters a new floor
 TODO enemy death gibs with some bounciness/physics
 TODO make jumpers move away from the walls on average, dont let them cling to the walls
+TODO investigate if using a vector class would save tokens
+TODO investigate merging check_dist and sqrdist
+TODO add a flag for bullet clusters which dont get deleted after they damage the player
 
 ## biiiig stretch
 DONE fix cobblestoning
-
 TODO clean up & animate door transitions
 TODO clean up & animate lvlup menu
 TODO add main menu

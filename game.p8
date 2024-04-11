@@ -220,7 +220,7 @@ function _init()
  local plan=dungeon[floor_idx]
  floor=floor_from_plan(plan)
  room=floor[cell_x][cell_y]
- add(room.enemies,e_jumper(2,2))
+ add(room.enemies,e_heavy(2,2))
  
  -- todo: do we really want
  --  to present this on startup?
@@ -413,46 +413,31 @@ function update_bullets()
     bx>256 or
     by<-64 or
     by>256 then
+   -- too far away, remove
    deli(bullets,i)
   else
+   -- update bullets & handle
+   -- collisions with player &
+   -- other entities
    if not bullet:update() then
     deli(bullets,i)
    elseif bullet.team==t_player then
     for ei=#room.enemies,1,-1 do
      local e=room.enemies[ei]
-     local ex,ey=center(e)
-     if check_dist(bx,by,ex,ey) then
-      local dist=sqrdist(ex,ey,bx,by)
-	     local min_rad=bullet.radius+e.radius
-	     if dist<min_rad*min_rad then
-	      local dmg=ply_dmg*bullet.dmg_mult
-	      if trans_quad_timer>0 then
-	       dmg*=4
-	      end
-	      if not e.dmg(dmg) then
-	       deli(room.enemies,ei)
-	      end
-	      deli(bullets,i)
-	     end
-     end
-    end
-   else
-    -- we do an n-scale dist
-    -- check before the real
-    -- radius-check. p8 uses
-    -- a fixed cap of like 32k
-    -- so its pretty easy to
-    -- cause an overflow when
-    -- checking large distances
-    local px,py=center(ply)
-    if check_dist(px,py,bx,by) then
-     local dist=sqrdist(px,py,bx,by)
-     local min_rad=bullet.radius+ply.radius
-     if dist<min_rad*min_rad then
-      dmg_ply()
+     if bullet:collides(e) then
+	     local dmg=ply_dmg*bullet.dmg_mult
+      if trans_quad_timer>0 then
+       dmg*=4
+      end
+      if not e.dmg(dmg) then
+       deli(room.enemies,ei)
+      end
       deli(bullets,i)
      end
     end
+   elseif bullet:collides(ply) then
+    dmg_ply()
+    deli(bullets,i)
    end
   end
  end
@@ -501,33 +486,9 @@ function draw_player()
  pset(px,py,8)
 end
 
-bul_spr_lut={
- {1,true,false}, -- 0
- {2,true,false}, -- 1
- {0,false,false},-- 2
- {2,false,false},-- 3
- {1,false,false},-- 4
- {2,false,true}, -- 5
- {0,false,true},-- 6
- {2,true,true},-- 7
- {1,true,false}, -- 8
-}
-
 function draw_bullets()
  for _,bullet in ipairs(bullets) do
-  local angle=atan2(bullet.dx, bullet.dy)
-  angle+=0.0625 -- [0.0625,1.0625)
-  angle=flr(angle*8) -- [0,8]
-  local bspr=bullet.base_spr
-  local lut=bul_spr_lut[angle+1]
-  spr(
-   bspr+lut[1],
-   entx(bullet),
-   enty(bullet),
-   1, 1,
-   lut[2], lut[3])
-  local bx,by=center(bullet)
-  pset(bx,by,9)
+  bullet:draw()
  end
 end
 
@@ -856,21 +817,100 @@ end
 t_player=0
 t_enemy=1
 
-function b_linear(cx,cy,rx,ry,dx,dy,team)
+function b_linear(cx,cy,rx,ry,dx,dy,team,life_time)
  return {
   cx=cx,cy=cy,
   rx=rx,ry=ry,
   dx=dx,dy=dy,
   base_spr=48,
   update=b_move,
+  collides=b_collides,
+  draw=b_draw,
   radius=1,
   team=team,
   rate_mult=1,
   dmg_mult=1,
+  life_time=life_time or 0,
+  use_spr_lut=true,
  }
 end
 
-function b_seeker(cx,cy,rx,ry,dir_x,dir_y,target,spd,team)
+function b_multi(cx,cy,rx,ry,dx,dy,team,life_time)
+ return {
+  cx=cx,cy=cy,
+  rx=rx,ry=ry,
+  dx=dx,dy=dy,
+  base_spr=3,
+  sx=24,sy=0,
+  sw=7,sh=7,
+  update=b_multi_update,
+  collides=b_multi_collides,
+  draw=b_multi_draw,
+  radius=6,
+  team=team,
+  rate_mult=1,
+  dmg_mult=1,
+  life_time=life_time or 0,
+  
+  multi_ang=0,
+  multi_rot_spd=1/120,
+  multi_radius=3,
+  multi_cnt=3,
+  buls={},
+ }
+end
+
+function b_multi_update(self)
+ if #self.buls!=self.multi_cnt then
+  self.buls={}
+  for i=1,self.multi_cnt do
+  	add(self.buls, {sx=0,sy=0,cx=0,cy=0})
+  end
+ end
+ local bx,by=center(self)
+ for i,bul in ipairs(self.buls) do
+  local frac=i/self.multi_cnt
+  -- bul center (used for collision)
+  bul.cx=bx+cos(self.multi_ang+frac)*self.multi_radius
+  bul.cy=by+sin(self.multi_ang+frac)*self.multi_radius
+  -- bul sprite pos
+  bul.sx=bul.cx-self.sw/2
+  bul.sy=bul.cy-self.sh/2
+ end
+ self.multi_ang+=self.multi_rot_spd
+ b_move(self)
+ 
+ return true
+end
+
+function b_multi_collides(self, ent)
+ local ex,ey=center(ent)
+ for _,bul in ipairs(self.buls) do
+  if check_dist(ex,ey,bul.cx,bul.cx) then
+	  local dist=sqrdist(ex,ey,bul.cx,bul.cy)
+	  local min_rad=self.radius+ent.radius
+	  if dist<min_rad*min_rad then
+	   return true
+	  end
+	 end
+ end
+ return false
+end
+
+function b_multi_draw(self)
+ for _,bul in ipairs(self.buls) do
+  sspr(
+   self.sx,self.sy,
+   self.sw,self.sh,
+   bul.sx,bul.sy,
+   self.sw,self.sh)
+  pset(bul.cx,bul.cy,9)
+ end
+ local bx,by=center(self)
+ pset(bx,by,9)
+end
+
+function b_seeker(cx,cy,rx,ry,dir_x,dir_y,target,spd,team,life_time)
  seeker={
   cx=cx,cy=cy,
   rx=rx,ry=ry,
@@ -879,10 +919,14 @@ function b_seeker(cx,cy,rx,ry,dir_x,dir_y,target,spd,team)
   dir_x=dir_x,
   dir_y=dir_y,
   spd=spd,
+  use_spr_lut=true,
+  life_time=life_time or 0,
   -- radians turn spd per frame
   turn_spd=0.01,
   target=target,
   update=b_seeker_update,
+  collides=b_collides,
+  draw=b_draw,
   nofollow_dist=7.5,
   radius=1,
   team=team,
@@ -933,7 +977,31 @@ function b_seeker_update(self)
  return true
 end
 
+function b_collides(self, ent)
+ -- we do an n-scale dist
+ -- check before the real
+ -- radius-check. p8 uses
+ -- a fixed cap of like 32k
+ -- so its pretty easy to
+ -- cause an overflow when
+ -- checking large distances
+ local bx,by=center(self)
+ local ex,ey=center(ent)
+ if check_dist(ex,ey,bx,by) then
+  local dist=sqrdist(ex,ey,bx,by)
+  local min_rad=self.radius+ent.radius
+  return dist<min_rad*min_rad
+ end
+ return false
+end
+
 function b_move(self)
+ if self.life_time>0 then
+  self.life_time-=1
+  if self.life_time==0 then
+   return false
+  end
+ end
  --
  -- horizontal
  self.rx+=self.dx
@@ -960,6 +1028,36 @@ function b_move(self)
  return true
 end
 
+bul_spr_lut={
+ {1,true,false}, -- 0
+ {2,true,false}, -- 1
+ {0,false,false},-- 2
+ {2,false,false},-- 3
+ {1,false,false},-- 4
+ {2,false,true}, -- 5
+ {0,false,true},-- 6
+ {2,true,true},-- 7
+ {1,true,false}, -- 8
+}
+
+function b_draw(self)
+ local angle=atan2(self.dx, self.dy)
+ angle+=0.0625 -- [0.0625,1.0625)
+ angle=flr(angle*8) -- [0,8]
+ local bspr=self.base_spr
+ local lut=bul_spr_lut[angle+1]
+ if not self.use_spr_lut then
+  lut={0,false,false}
+ end
+ spr(
+  bspr+lut[1],
+  entx(self),
+  enty(self),
+  1, 1,
+  lut[2], lut[3])
+ local bx,by=center(self)
+ pset(bx,by,9)
+end
 -->8
 -- floor plan presets
 
@@ -1260,6 +1358,9 @@ function e_walker(cx,cy)
   cx=cx,cy=cy,
   rx=0,ry=0,
   dx=0,dy=0,
+  -- drawing
+  spr=39,
+  sw=2,sh=2,
   -- collision
   radius=13,
   ox=1.5,oy=1.5,
@@ -1280,18 +1381,9 @@ function e_walker(cx,cy)
 	  dmg_ply()
 	 end
  end
- 
- function self.draw()
-	 local x=flr(entx(self))+0.5
-	 local y=flr(enty(self))+0.5
-	 local flip_x=x<entx(ply)
-	 spr(39,x,y,2,2,flip_x,false)
- end
- 
- function self.dmg(n)
-  self.health-=n
-  return self.health>0
- end
+
+ self.draw=e_draw_func(self)
+ self.dmg=e_dmg_func(self)
  
  return self
 end
@@ -1301,6 +1393,10 @@ function e_jumper(cx,cy)
   cx=cx,cy=cy,
   rx=0,ry=0,
   dx=0,dy=0,
+  -- drawing
+  -- spr can be either 5 or 6
+  spr=5+flr(rnd()),
+  sw=1,sh=1,
   -- collision
   radius=2,
   ox=2,oy=2,
@@ -1352,29 +1448,172 @@ function e_jumper(cx,cy)
 	 end
  end
  
- function self.draw()
-	 local x=flr(entx(self))+0.5
-	 local y=flr(enty(self))+0.5
-	 local flip_x=x<entx(ply)
-	 spr(6,x,y,1,1,flip_x,false)
- end
- 
- function self.dmg(n)
-  self.health-=n
-  return self.health>0
- end
+ self.draw=e_draw_func(self)
+ self.dmg=e_dmg_func(self)
  
  return self
 end
 
+function e_heavy(cx,cy)
+ local state_normal=0
+ local state_waitshoot=1
+ self={
+  cx=cx,cy=cy,
+  rx=0,ry=0,
+  dx=0,dy=0,
+  -- drawing
+  spr=7,
+  sw=2,sh=2,
+  -- collision
+  radius=4,
+  ox=4,oy=4,
+  w=7,h=8,
+  
+  spd=8/60,
+  
+  health=100,
+  
+  -- will always stay away
+  -- from this distance to the player
+  min_dist=40,
+  -- moves towards the player until
+  -- its less than this distance
+  -- then attacks
+  keep_dist=70,
+  -- todo: add another distance
+  --  to fix for jitter between
+  --  min_ist and keep_dist
+  next_shot_delay=90,
+  pre_shot_delay=30,
+  
+  -- 3/4 pi radians
+  shot_arc=0.375,
+  shot_count=5,
+  shot_start_radius=8,
+  shot_life=15,
+ }
+ 
+ self.next_shot_timer=0
+ self.pre_shot_timer=0
+ self.sqr_min_dist=self.min_dist*self.min_dist
+ self.sqr_keep_dist=self.keep_dist*self.keep_dist
+ 
+ function self.update()
+	 local px,py=center(ply)
+	 local ex,ey=center(self)
+	 local d=sqrdist(ex,ey,px,py)
+	 local too_close=check_dist(ex,ey,px,py,self.min_dist) and d<self.sqr_min_dist
+	 local close_enough=check_dist(ex,ey,px,py,self.keep_dist) and d<self.sqr_keep_dist
+	 
+	 if self.next_shot_timer>0 then
+	  self.next_shot_timer-=1
+	  -- if i'm not able to shoot
+	  -- then dont stop to shoot
+	  if self.next_shot_timer>0 then
+	   close_enough=false
+	  end
+	 end
+	 
+	 if self.pre_shot_timer>0 then
+	  self.pre_shot_timer-=1
+	  -- shoot at ply!
+	  if self.pre_shot_timer==0 then
+	   self:shoot_ply()
+	   self.next_shot_timer=self.next_shot_delay
+	  elseif not too_close then
+	   return true
+	  end
+	 end
+
+	 -- if im just close enough to
+	 -- ply, stand still and shoot
+	 if close_enough then
+	  self.dx=0
+	  self.dy=0
+	  self.pre_shot_timer=self.pre_shot_delay
+	 end
+	 
+	 -- if im too close to ply
+	 -- then move back in the 
+	 -- opposite direction
+	 if too_close then
+	  self.dx,self.dy=dirto(ex,ey,px,py)
+	  self.dx=-self.dx*self.spd
+	  self.dy=-self.dy*self.spd
+	 elseif not close_enough then
+	  self.dx,self.dy=dirto(ex,ey,px,py)
+	  self.dx*=self.spd
+	  self.dy*=self.spd
+	 end
+	 
+	 move_ent(self)
+	 ex,ey=center(self)
+	 if aabb(self,ply) then
+	  dmg_ply()
+	 end
+ end
+ 
+ self.shoot_ply=function(self)
+  local cx,cy=center(self)
+  local px,py=center(ply)
+  local dx,dy=dirto(cx,cy,px,py)
+  dx,dy=rotate(dx,dy,0,0,-self.shot_arc/2)
+  local bul_arc=self.shot_arc/(self.shot_count+1)
+  for i=1,self.shot_count do
+	  dx,dy=rotate(dx,dy,0,0,bul_arc)
+	  
+	  local bx=cx+dx*self.shot_start_radius
+	  local by=cy+dy*self.shot_start_radius
+	  local bcx=bx\8
+	  local bcy=by\8
+	  local brx=bx%8
+	  local bry=by%8
+	  local bullet=b_linear(
+    bcx,bcy,
+    brx,bry,
+	   dx*2.25, dy*2.25,
+	   t_enemy,
+	   self.shot_life)
+	  bullet.base_spr=3
+	  bullet.use_spr_lut=false
+	  add(bullets,bullet)
+	 end
+ end
+ 
+ self.draw=e_draw_func(self)
+ self.dmg=e_dmg_func(self)
+ 
+ return self
+end
+
+function e_draw_func(e)
+ return function()
+  local x=flr(entx(e))+0.5
+	 local y=flr(enty(e))+0.5
+	 local flip_x=x<entx(ply)
+	 spr(
+	 	e.spr,
+	 	x,y,
+	 	e.sw,e.sh,
+	 	flip_x,false)
+ end
+end
+
+function e_dmg_func(e)
+ return function(n)
+ 	e.health-=n
+ 	return e.health>0
+ end
+end
+
 __gfx__
-66666666666776666666777666666666677667766666666676666667667666666666676666666666666666666666666666666666666666666666666666666666
-66666666667007666667000766666666700770076776677667766776667760666606776666666777776666666666667777666666666667777766666667666676
-66766766667007666770007666677666700000076677776666777766667706666660776666677777777766666666777777776666666777777777666670766707
-66677666670000767000707666700766700000076707707667777076666077666677066666777777777776666667777777776666667777777777766670077007
-66677666700770077000707666700766700000076677776666707766660677777777606666777777777776666667777777777666667777777777766670777707
-66766766700000076770007666677666670000767767767777677677666677077077666666777700707776666667707777777666667777777777766667077076
-66666666707777076667000766666666667007667667766776677667667707700770776666770000000776666667000777777666667777777777766666766766
+66666666666776666666777666777666677667766666666676666667667666666666676666666666666666666666666666666666666666666666666666666666
+66666666667007666667000767000766700770076776677667766776667760666606776666666777776666666666667777666666666667777766666667666676
+66766766667007666770007670070076700000076677776666777766667706666660776666677777777766666666777777776666666777777777666670766707
+66677666670000767000707670777076700000076707707667777076666077666677066666777777777776666667777777776666667777777777766670077007
+66677666700770077000707670070076700000076677776666707766660677777777606666777777777776666667777777777666667777777777766670777707
+66766766700000076770007667000766670000767767767777677677666677077077666666777700707776666667707777777666667777777777766667077076
+66666666707777076667000766777666667007667667766776677667667707700770776666770000000776666667000777777666667777777777766666766766
 66666666676666766666777666666666666776666676676666766766666700777700766666677700777776666670770077777666666777777777766666666666
 77777777000000000000000066660000000066660077707066666000666677777777666666670000000766666667000077776666666777777777666666766766
 77777777000000000000000066607770770706660770770766600707667777777777776666667000007666666666770007766666666670777076666667766776
