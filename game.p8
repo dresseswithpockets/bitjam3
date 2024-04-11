@@ -201,6 +201,7 @@ function _init()
  
  ply_dmg=2
  trans_quad_time=0
+ trans_quad_timer=0
  trans_delay=20
  trans_self_dmg=0
  
@@ -238,6 +239,10 @@ function _update60()
   update_lvlup_menu()
   return
  end
+ 
+ if trans_quad_timer>0 then
+  trans_quad_timer-=1
+ end
 
  if ply.trans then
   -- todo: spawn trans
@@ -251,6 +256,7 @@ function _update60()
   ply.trans_timer-=1
   if ply.trans_timer==0 then
    ply.form=ply.form==1and 2or 1
+   trans_quad_timer=trans_quad_time
    dmg_ply(trans_self_dmg)
   end
  end

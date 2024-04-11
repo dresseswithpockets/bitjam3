@@ -17,7 +17,7 @@ DONE add random floor plan selection when player starts the game
 DONE add an "effect system", which prompts the user to choose an effect/upgrade, with some sample no-op effects to choose from
 DONE add a basic enemy which just walks towards the player after they're within range, has medium touch-damage and medium health
 DONE update bullets to use custom sprites
-TODO make `trans_quad_time` actually do something
+DONE make `trans_quad_time` actually do something
 TODO add an enemy which hops around sporadically and quickly, but has low health & does low touch-damage
 TODO add a slow-moving high-health enemy which tries to keep its distance from the player
 TODO add a boss room which always spawns a specified enemy
