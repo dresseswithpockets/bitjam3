@@ -154,13 +154,14 @@ end
 
 function goto_first_room_dir(dir)
  for _,l in ipairs(room.links) do
-  local ppos=topleft(ply)
   if dir==d_up or dir==d_down then 
-   if l.dir==dir and ppos.x>=l.door.x1-2 and ppos.x<=l.door.x2+2 then
+   local ply_x=entx(ply)
+   if l.dir==dir and ply_x>=l.door.x1-2 and ply_x<=l.door.x2+2 then
     goto_room(l.trx,l.try,l.tcx,l.tcy,l.dir)
    end
   elseif l.dir==dir then
-   if l.dir==dir and ppos.y>=l.door.y2-2 and ppos.y<=l.door.y1+2 then
+   local ply_y=enty(ply)
+   if l.dir==dir and ply_y>=l.door.y2-2 and ply_y<=l.door.y1+2 then
     goto_room(l.trx,l.try,l.tcx,l.tcy,l.dir)
    end
   end
@@ -269,8 +270,6 @@ function _init()
  local plan=dungeon[floor_idx]
  floor=floor_from_plan(plan)
  room=floor[cell_x][cell_y]
- --add(room.enemies,e_walker(vector(2,2)))
- --add(room.enemies,e_jumper(vector(2,2)))
  add(room.enemies,e_heavy(vector(2,2)))
  
  -- todo: do we really want
@@ -402,7 +401,8 @@ function update_normal()
  end
 
  -- get and clamp camera scroll
- cam_x,cam_y=v_unpck(topleft(ply))
+ cam_x=entx(ply)
+ cam_y=enty(ply)
  clamp_scroll_to_room()
  
  last_keys_bits=key_bits
@@ -584,13 +584,10 @@ function draw_boss_room()
 end
 
 function draw_player()
- local ps=topleft(ply)
  spr(
   ply.spr,
-  ps.x,ps.y,1,1,
+  entx(ply),enty(ply),1,1,
   ply.flip_x,ply.flip_y)
- local r1,r2=ent_rect(ply)
- rect(r1.x,r1.y,r2.x,r2.y,9)
  local pc=center(ply)
  pset(pc.x,pc.y,8)
  circ(pc.x,pc.y,ply.radius,11)
@@ -864,17 +861,42 @@ function check_dist(x1,y1,x2,y2,a)
  return abs(x2-x1)<=a and abs(y2-y1)<=a
 end
 
-function ent_rect(ent)
- local a1=v_add(topleft(ent),vector(ent.ox,ent.oy))
- local a2=v_add(a1,vector(ent.w,ent.h))
- return a1,a2
+function aabb(a,b)
+ local ax1,ay1=entx(a)+a.ox,enty(a)+a.oy
+ local ax2,ay2=ax1+a.w,ay1+a.h
+ local bx1,by1=entx(b)+b.ox,enty(b)+b.oy
+ local bx2,by2=bx1+b.w,by1+b.h
+ return ax1<bx2 and ax2>bx1 and
+  ay1<by2 and ay2>by1
 end
 
-function aabb(a,b)
- local a1,a2=ent_rect(a)
- local b1,b2=ent_rect(b)
- return a1.x<b2.x and a2.x>b1.x and
-  a1.y<b2.y and a2.y>b1.y
+function norm(x,y)
+ local mag=sqrt(x*x+y*y)
+ return x/mag,y/mag,mag
+end
+
+function dirto(fx,fy,tx,ty)
+ return norm(tx-fx,ty-fy)
+end
+
+function rotate(x,y,cx,cy,a)
+ local sina=sin(a)
+ local cosa=cos(a)
+ x-=cx
+ y-=cy
+ local rotx=cosa*x-sina*y
+ local roty=sina*x+cosa*y
+ rotx+=cx
+ roty+=cy
+ return rotx,roty
+end
+
+function entx(ent)
+ return ent.tile.x*8+ent.tile_frac.x
+end
+
+function enty(ent)
+ return ent.tile.y*8+ent.tile_frac.y
 end
 
 function topleft(ent)
@@ -1075,10 +1097,10 @@ function b_collides(self, ent)
  -- so its pretty easy to
  -- cause an overflow when
  -- checking large distances
- local bcenter=center(self)
- local ecenter=center(ent)
- if check_vdst(bcenter,ecenter) then
-  local dist=v_dstsq(bcenter,ecenter)
+ local bx,by=v_unpck(center(self))
+ local ex,ey=v_unpck(center(ent))
+ if check_dist(ex,ey,bx,by) then
+  local dist=sqrdist(ex,ey,bx,by)
   local min_rad=self.radius+ent.radius
   return dist<min_rad*min_rad
  end
@@ -1138,10 +1160,10 @@ function b_draw(self)
  if not self.use_spr_lut then
   lut={0,false,false}
  end
- local bpos=topleft(self)
  spr(
   bspr+lut[1],
-  bpos.x, bpos.y,
+  entx(self),
+  enty(self),
   1, 1,
   lut[2], lut[3])
  local bx,by=v_unpck(center(self))
@@ -1477,14 +1499,14 @@ shuffle(upgrades)
 -->8
 -- enemies
 
-function e_walker(tile)
+function e_walker(cx,cy)
  local self={
-  tile=tile,
-  tile_frac=v_cpy(v_zero),
-  velocity=v_cpy(v_zero),
+  cx=cx,cy=cy,
+  rx=0,ry=0,
+  dx=0,dy=0,
   -- drawing
   sx=56,sy=16,
-  spr_size=vector(16,16),
+  sw=16,sh=16,
   -- collision
   radius=13,
   ox=1.5,oy=1.5,
@@ -1495,8 +1517,12 @@ function e_walker(tile)
  }
  
  function self.update()
-  self.velocity=v_mul(v_dir(topleft(self), topleft(ply)),self.spd)
+	 self.dx,self.dy=dirto(entx(self),enty(self),entx(ply),enty(ply))
+	 self.dx*=self.spd
+	 self.dy*=self.spd
 	 move_ent(self)
+	 local px,py=center(ply)
+	 local ex,ey=center(self)
 	 if aabb(self,ply) then
 	  dmg_ply()
 	 end
@@ -1508,23 +1534,23 @@ function e_walker(tile)
  return self
 end
 
-function e_jumper(tile)
+function e_jumper(cx,cy)
  local self={
-  tile=tile,
-  tile_frac=v_cpy(v_zero),
-  velocity=v_cpy(v_zero),
+  cx=cx,cy=cy,
+  rx=0,ry=0,
+  dx=0,dy=0,
   -- drawing
   -- spr can be either 5 or 6
   sx=8*(5+flr(rnd())),sy=0,
-  spr_size=vector(8,8),
+  sw=8,sh=8,
   -- collision
   radius=2,
   ox=2,oy=2,
   w=4,h=4,
-
+  
   health=30,
-
-  dir=v_cpy(v_zero),
+  
+  dir_x=0,dir_y=0,
   jump_spd=128/60,
   jump_damp=0.96,
   jump_timer=50,
@@ -1532,30 +1558,38 @@ function e_jumper(tile)
   jump_ply_chance=0.25,
   jump_perp_chance=0.5,
  }
+
  
  function self.update()
+	 local px,py=center(ply)
   self.jump_timer-=1
   if self.jump_timer==0 then
-   local pcenter=center(ply)
-   local ecenter=center(self)
+   local ex,ey=center(self)
    local choice=rnd()
-   local near_ply=check_vdst(ecenter,pcenter)
+   local near_ply=check_dist(ex,ey,px,py)
    if choice < self.jump_ply_chance and
       near_ply then
-    self.dir=v_dir(ecenter,pcenter)
+    self.dir_x,self.dir_y=dirto(ex,ey,px,py)
    elseif choice < self.jump_perp_chance and
       near_ply then
-    local dir=v_perp(v_dir(ecenter,pcenter))
+    local dir_x,dir_y=dirto(ex,ey,px,py)
+    self.dir_x=-dir_y
+    self.dir_y=dir_x
    else
     -- todo: move away from walls
     --  on average
-    self.dir=v_rnd()
+	   local a=rnd()
+	   self.dir_x=cos(a)
+	   self.dir_y=sin(a)
 	  end
-   self.velocity=v_mul(self.dir,self.jump_spd)
+   self.dx=self.dir_x*self.jump_spd
+   self.dy=self.dir_y*self.jump_spd
    self.jump_timer=self.jump_time
   end
 	 move_ent(self)
-  self.velocity=v_mul(self.velocity,self.jump_damp)
+	 self.dx*=self.jump_damp
+	 self.dy*=self.jump_damp
+	 local ex,ey=center(self)
 	 if aabb(self,ply) then
 	  dmg_ply()
 	 end
@@ -1778,15 +1812,13 @@ end
 function e_draw_func(e)
  return function()
   local xy=v_add(v_flr(topleft(e)), v_half)
-	 local flip_x=xy.x<topleft(ply).x
+	 local flip_x=xy.x<entx(ply)
 	 sspr(
 	 	e.sx,e.sy,
 	 	e.spr_size.x,e.spr_size.y,
 	 	xy.x,xy.y,
 	 	e.spr_size.x,e.spr_size.y,
 	 	flip_x,false)
-	 local r1,r2=ent_rect(e)
-	 rect(r1.x,r1.y,r2.x,r2.y,9)
  end
 end
 
