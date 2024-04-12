@@ -103,18 +103,26 @@ function move_ent(ent)
  return col_left,col_right,col_up,col_down
 end
 
-function begin_boss()
- 
+function start_boss_enter1()
+ room_state=r_boss_enter1
+ room_state_timer=room_boss_fade_time
+end
+
+function start_boss_enter2()
+ local boss=room.boss_func(7,2)
+ add(room.enemies,boss)
+	ply.rx=4
+ ply.ry=4
+ ply.cx=7
+ ply.cy=11
+ room_state=r_boss_enter2
+ room_state_timer=room_boss_fade_time
 end
 
 function goto_room(rx,ry,tcx,tcy,dir)
  room=floor[rx][ry]
  if room.boss then
-  ply.rx=4
-  ply.ry=4
-  ply.cx=7
-  ply.cy=11
-  begin_boss()
+  start_boss_enter1()
   return
  end
  local ix=tcx*16
@@ -255,6 +263,13 @@ function _init()
  }
  floor_idx=1
  
+ r_normal=1
+ r_boss_enter1=2
+ r_boss_enter2=3
+ room_state=r_normal
+ room_state_timer=0
+ room_boss_fade_time=60
+ 
  local plan=dungeon[floor_idx]
  floor=floor_from_plan(plan)
  room=floor[cell_x][cell_y]
@@ -268,6 +283,26 @@ end
 -->8
 -- update
 function _update60()
+ if room_state==r_normal then
+  update_normal()
+ elseif room_state==r_boss_enter1 then
+  if room_state_timer>0 then
+   room_state_timer-=1
+   if room_state_timer==0 then
+    start_boss_enter2()
+   end
+  end
+ elseif room_state==r_boss_enter2 then
+  if room_state_timer>0 then
+   room_state_timer-=1
+   if room_state_timer==0 then
+    room_state=r_normal
+   end
+  end
+ end
+end
+
+function update_normal()
  if ply.health <=0 then
   update_dead()
   return
@@ -492,6 +527,31 @@ end
 -->8
 -- draw
 function _draw()
+ if room_state==r_normal then
+  draw_normal()
+ elseif room_state==r_boss_enter1 then
+  poke(0x5f34, 0x2)
+  local px,py=center(ply)
+  local r=128*(room_state_timer-1)/room_boss_fade_time
+  circfill(px,py,r,0x1800)
+  poke(0x5f34, 0x0)
+  circ(px,py,r,7)
+ elseif room_state==r_boss_enter2 then
+  cls()
+  draw_boss_room()
+  draw_enemies()
+  draw_player()
+  draw_ply_hp()
+  poke(0x5f34, 0x2)
+  local px,py=center(ply)
+  local r=128*(room_boss_fade_time-room_state_timer)/room_boss_fade_time
+  circfill(px,py,r,0x1800)
+  poke(0x5f34, 0x0)
+  circ(px,py,r,7)
+ end
+end
+
+function draw_normal()
  cls(0)
  if ply.health<=0 then
   draw_dead_menu()
@@ -1349,6 +1409,7 @@ function floor_from_plan(plan)
  -- room
  local boss_room=rnd(ends)
  boss_room.boss=true
+ boss_room.boss_func=rnd(bosses)
  return floor
 end
 -->8
@@ -1688,6 +1749,9 @@ function e_dmg_func(e)
  end
 end
 
+bosses={
+ e_heavy,
+}
 __gfx__
 66666666666776666666777666777666677667766666666676666667667666666666676666666666666666666666666666666666666666666666666666666666
 66666666667007666667000767000766700770076776677667766776667760666606776666666777776666666666667777666666666667777766666667666676

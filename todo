@@ -38,11 +38,13 @@ TODO add a flag for bullet clusters which dont get deleted after they damage the
 TODO rework heavy enemy to use a state machine for Move-Towards-Player, and Keep-Distance-And-Shoot states.
 TODO more upgrades!
 TODO lock doors when player enters a new room, until player defeats all enemies in the room
+TODO use boss circfill transition for floor transitions
+TODO replace boss circfill transition with fadeout transition
 
 ## boss 1 design
 DONE add "dead-end" flag to rooms. Dead ends can be picked for use as special rooms (e.g. Boss, Shop, Item, Upgrade, etc)
 DONE add boss room, which has no walls and collision at 0,0,127,127
-TODO add boss-room-entering animation - dither fades to white, dither fades back with player on bottom third, boss on top third.
+DONE add boss-room-entering animation - dither fades to white, dither fades back with player on bottom third, boss on top third.
 TODO boss stage 1: shoots simple cluster projectiles towards player
 TODO boss stage 2: fires rotating multi clusters at her position, with a slowly increasing radius and a scaled rotation speed. the rotation speed is angular, not linear, so the actual linear speed scales at a rate of 2pi with respect to the radius, so we need to set it to radius/2pi
 TODO boss stage 3: both 1 and 2 at the same time, at slightly faster rates. boss moves a bit faster too.
@@ -58,6 +60,7 @@ TODO make rapid fire weapon alternating
 TODO AABB checks might be faster than sqrdist checks
 TODO use a bullet pool to ensure we never go over the bullet limit
 TODO toggle-able minimap which shows rooms discovered, their shapes, and room types if known.
+TODO add boss animations when ply enters the room (e.g. one the boss falls from the sky, shakes the camera, makes a slam sfx)
 
 # art
 DONE placeholder player
