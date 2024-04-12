@@ -211,6 +211,9 @@ function _init()
   -- tile fraction [0, 8]
   rx=0,ry=0,
   
+  -- sprite width/height
+  sw=8,sh=8,
+  
   -- velocity
   dx=0,dy=0,
   
@@ -218,7 +221,7 @@ function _init()
   sh_x=0,sh_y=-1,
   
   -- collision
-  radius=4,
+  radius=1,
   ox=0.5,oy=0.5,
   w=7,h=7,
   
@@ -484,9 +487,9 @@ function update_bullets()
  for i=#bullets,1,-1 do
   local bullet=bullets[i]
   local bx,by=center(bullet)
-  if bx<-64 or
+  if bx<0 or
     bx>256 or
-    by<-64 or
+    by<0 or
     by>256 then
    -- too far away, remove
    deli(bullets,i)
@@ -593,6 +596,7 @@ function draw_player()
   ply.flip_x,ply.flip_y)
  local px,py=center(ply)
  pset(px,py,8)
+ circ(px,py,ply.radius,11)
 end
 
 function draw_bullets()
@@ -854,7 +858,7 @@ function check_dist(x1,y1,x2,y2,a)
  -- 179 is the smallest amount we
  -- can square (e.g. in a sqrdist check)
  -- before overflowing in p8
- a=a or 179
+ a=a or 127
  return abs(x2-x1)<=a and abs(y2-y1)<=a
 end
 
@@ -897,8 +901,8 @@ function enty(ent)
 end
 
 function center(ent)
- return ent.cx*8+ent.rx+4,
-  ent.cy*8+ent.ry+4
+ return ent.cx*8+ent.rx+ent.sw/2,
+  ent.cy*8+ent.ry+ent.sh/2
 end
 
 function clamp_scroll_to_room()
@@ -955,7 +959,7 @@ function b_multi(cx,cy,rx,ry,dx,dy,team,life_time)
   update=b_multi_update,
   collides=b_multi_collides,
   draw=b_multi_draw,
-  radius=6,
+  radius=3,
   team=team,
   rate_mult=1,
   dmg_mult=1,
@@ -995,7 +999,7 @@ end
 function b_multi_collides(self, ent)
  local ex,ey=center(ent)
  for _,bul in ipairs(self.buls) do
-  if check_dist(ex,ey,bul.cx,bul.cx) then
+  if check_dist(ex,ey,bul.cx,bul.cy) then
 	  local dist=sqrdist(ex,ey,bul.cx,bul.cy)
 	  local min_rad=self.radius+ent.radius
 	  if dist<min_rad*min_rad then
@@ -1014,9 +1018,11 @@ function b_multi_draw(self)
    bul.sx,bul.sy,
    self.sw,self.sh)
   pset(bul.cx,bul.cy,9)
+  circ(bul.cx,bul.cy,self.radius,8)
  end
  local bx,by=center(self)
  pset(bx,by,9)
+ circ(bx,by,self.radius,8)
 end
 
 function b_seeker(cx,cy,rx,ry,dir_x,dir_y,target,spd,team,life_time)
@@ -1166,6 +1172,7 @@ function b_draw(self)
   lut[2], lut[3])
  local bx,by=center(self)
  pset(bx,by,9)
+ circ(bx,by,self.radius,8)
 end
 -->8
 -- floor plan presets
@@ -1497,13 +1504,13 @@ shuffle(upgrades)
 -- enemies
 
 function e_walker(cx,cy)
- self={
+ local self={
   cx=cx,cy=cy,
   rx=0,ry=0,
   dx=0,dy=0,
   -- drawing
-  spr=39,
-  sw=2,sh=2,
+  sx=56,sy=16,
+  sw=16,sh=16,
   -- collision
   radius=13,
   ox=1.5,oy=1.5,
@@ -1532,14 +1539,14 @@ function e_walker(cx,cy)
 end
 
 function e_jumper(cx,cy)
- self={
+ local self={
   cx=cx,cy=cy,
   rx=0,ry=0,
   dx=0,dy=0,
   -- drawing
   -- spr can be either 5 or 6
-  spr=5+flr(rnd()),
-  sw=1,sh=1,
+  sx=8*(5+flr(rnd())),sy=0,
+  sw=8,sh=8,
   -- collision
   radius=2,
   ox=2,oy=2,
@@ -1555,6 +1562,7 @@ function e_jumper(cx,cy)
   jump_ply_chance=0.25,
   jump_perp_chance=0.5,
  }
+
  
  function self.update()
 	 local px,py=center(ply)
@@ -1600,13 +1608,13 @@ end
 function e_heavy(cx,cy)
  local state_normal=0
  local state_waitshoot=1
- self={
+ local self={
   cx=cx,cy=cy,
   rx=0,ry=0,
   dx=0,dy=0,
   -- drawing
-  spr=7,
-  sw=2,sh=2,
+  sx=56,sy=0,
+  sw=16,sh=16,
   -- collision
   radius=4,
   ox=4,oy=4,
@@ -1634,6 +1642,7 @@ function e_heavy(cx,cy)
   shot_count=5,
   shot_start_radius=8,
   shot_life=15,
+  shot_spd=2.25,
  }
  
  self.next_shot_timer=0
@@ -1696,37 +1705,124 @@ function e_heavy(cx,cy)
 	 end
  end
  
- self.shoot_ply=function(self)
-  local cx,cy=center(self)
-  local px,py=center(ply)
-  local dx,dy=dirto(cx,cy,px,py)
-  dx,dy=rotate(dx,dy,0,0,-self.shot_arc/2)
-  local bul_arc=self.shot_arc/(self.shot_count+1)
-  for i=1,self.shot_count do
-	  dx,dy=rotate(dx,dy,0,0,bul_arc)
-	  
-	  local bx=cx+dx*self.shot_start_radius
-	  local by=cy+dy*self.shot_start_radius
-	  local bcx=bx\8
-	  local bcy=by\8
-	  local brx=bx%8
-	  local bry=by%8
-	  local bullet=b_linear(
-    bcx,bcy,
-    brx,bry,
-	   dx*2.25, dy*2.25,
-	   t_enemy,
-	   self.shot_life)
-	  bullet.base_spr=3
-	  bullet.use_spr_lut=false
-	  add(bullets,bullet)
-	 end
- end
- 
+ self.shoot_ply=e_shoot_ply(self)
  self.draw=e_draw_func(self)
  self.dmg=e_dmg_func(self)
  
  return self
+end
+
+function lerp(a,b,t)
+	return a+(b-a)*t
+end
+
+function e_boss_lilguy(cx,cy)
+ local self={
+  cx=cx,cy=cy,
+  rx=0,ry=0,
+  -- drawing
+  sx=88,sy=16,
+  sw=16,sh=16,
+  -- collision
+  radius=13,
+  ox=1.5,oy=1.5,
+  w=13,h=13,
+  
+  health=500,
+
+  -- lilguy
+  -- left-right movement
+  bound_l=8,
+  bound_r=104,
+  tx_time_min=12,
+  tx_time_max=120,
+  -- firing
+  shot_arc=0.2,
+  shot_count=3,
+  shot_start_radius=1,
+  shot_life=0,
+  shot_spd=0.6,
+  shot_fac=b_multi,
+  shoot_timer=80,
+  shoot_time=90,
+ }
+ 
+ self.last_tx,_=center(self)
+ self.next_tx=rnd(self.bound_r-self.bound_l)+self.bound_l
+ self.tx_time=flr(rnd(self.tx_time_max-self.tx_time_min)+self.tx_time_min)
+ self.tx_timer=self.tx_time
+ 
+ function self.update()
+  local x=lerp(
+   self.next_tx,
+   self.last_tx,
+   self.tx_timer/self.tx_time)
+  self.cx=x\8
+  self.rx=x%8
+  self.tx_timer-=1
+  if self.tx_timer==0 then
+   self.last_tx=self.next_tx
+   self.next_tx=rnd(self.bound_r-self.bound_l)+self.bound_l
+   self.tx_time=flr(rnd(self.tx_time_max-self.tx_time_min)+self.tx_time_min)
+   self.tx_timer=self.tx_time
+  end
+  self.shoot_timer-=1
+  if self.shoot_timer==0 then
+   self:shoot_ply()
+   self.shoot_timer=self.shoot_time
+  end
+	 local px,py=center(ply)
+	 local ex,ey=center(self)
+	 if aabb(self,ply) then
+	  dmg_ply()
+	 end
+ end
+
+ self.shoot_ply=e_shoot_ply(self)
+ self.draw=e_draw_func(self)
+ self.dmg=e_dmg_func(self)
+ 
+ return self
+end
+
+function shoot_multi(cx,cy,tx,ty,dx,dy,arc,n,r,lt,spd,b_fac)
+ b_fac=b_fac or b_linear
+ dx,dy=rotate(dx,dy,0,0,-arc/2)
+ local bul_arc=arc/(n+1)
+ for i=1,n do
+  dx,dy=rotate(dx,dy,0,0,bul_arc)
+  local bx=cx+dx*r
+  local by=cy+dy*r
+  local bcx=bx\8
+  local bcy=by\8
+  local brx=bx%8
+  local bry=by%8
+  local bullet=b_fac(
+   bcx,bcy,
+   brx,bry,
+   dx*spd, dy*spd,
+   t_enemy,
+   lt)
+  bullet.base_spr=3
+  bullet.use_spr_lut=false
+  add(bullets,bullet)
+ end
+end
+
+function e_shoot_ply(e)
+ return function()
+  local cx,cy=center(e)
+  local px,py=center(ply)
+  local dx,dy=dirto(cx,cy,px,py)
+  shoot_multi(
+  	cx,cy,tx,ty,dx,dy,
+  	e.shot_arc,
+  	e.shot_count,
+  	e.shot_start_radius,
+  	e.shot_life,
+  	e.shot_spd,
+  	e.shot_fac)
+ end
 end
 
 function e_draw_func(e)
@@ -1734,8 +1830,9 @@ function e_draw_func(e)
   local x=flr(entx(e))+0.5
 	 local y=flr(enty(e))+0.5
 	 local flip_x=x<entx(ply)
-	 spr(
-	 	e.spr,
+	 sspr(
+	 	e.sx,e.sy,
+	 	e.sw,e.sh,
 	 	x,y,
 	 	e.sw,e.sh,
 	 	flip_x,false)
@@ -1750,7 +1847,7 @@ function e_dmg_func(e)
 end
 
 bosses={
- e_heavy,
+ e_boss_lilguy,
 }
 __gfx__
 66666666666776666666777666777666677667766666666676666667667666666666676666666666666666666666666666666666666666666666666666666666
@@ -1771,13 +1868,13 @@ __gfx__
 77777777000000000000000000707070707070706666600007777707666677666677666666667767677666666666677677766666666677666776666666666666
 66677666666667767776666666666666666666666666666666666666666666777766666666666666667666666666666666666666666666666666666666666666
 66700766666670077007666666666666666666666666666666666666666667000076666666666666676677666666677777666666666666666666666666666666
-66700766677700767000777666666666666666666666666666666666666670000076666666666777666666766667777777766666666666666666666666666666
-66700766700000076700000766666666666666666666666666666666666700000076666666667007777666666677777707776666666666666666666666666666
-67000076700000076670007766666666666666666666666666666666666707000007666666670007770767666677777007776666666666666666666666666666
-70000007677700766670076666666666666666666666666666666666667077700700776666670000700766766707000000076666666666666666666666666666
-70700707666670076670766666666666666666666666666666666666667070700770007666670700000766667777070007777666666666666666666666666666
-67677676666667766667766666666666666666666666666666666666667070700070007666670007070766667767077000000766666666666666666666666666
-66677666666667777776666666666666666666666666666666666666670007700077700766670077000766666767000077777766666666666666666666666666
+66700766677700767000777666666666666666666666666666666666666670000076666666666777666666766666777777776666666666666666666666666666
+66700766700000076700000766666666666666666666666666666666666700000076666666667007777666666667770777777666666666666666666666666666
+67000076700000076670007766666666666666666666666666666666666707000007666666670007770767666667770077777666666666666666666666666666
+70000007677700766670076666666666666666666666666666666666667077700700776666670000700766766667000000070766666666666666666666666666
+70700707666670076670766666666666666666666666666666666666667070700770007666670700000766666677770007077776666666666666666666666666
+67677676666667766667766666666666666666666666666666666666667070700070007666670007070766666700000077076776666666666666666666666666
+66677666666667777776666666666666666666666666666666666666670007700077700766670077000766666777777000076766666666666666666666666666
 66700766666770767007766666666666666666666666666666666666670000007000000766667077707666666666700000766666666666666666666666666666
 66700766677000077000077666666666666666666666666666666666700000007700000766670777770766666667077077076666666666666666666666666666
 67000076700000766700000766666666666666666666666666666666700000077770000766770070700776666677000700077666666666666666666666666666
