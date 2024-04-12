@@ -21,6 +21,7 @@ DONE make `trans_quad_time` actually do something
 DONE add an enemy which hops around sporadically and quickly, but has low health & does low touch-damage
 DONE add multi/cluster bullet
 DONE add a slow-moving high-health enemy which tries to keep its distance from the player
+DONE fix bullet collisions with player
 TODO add a boss room which always spawns a specified enemy
 TODO add boss enemy with bullet hell pattern attacks
 TODO add shooting-induced knockback to player
@@ -40,7 +41,6 @@ TODO more upgrades!
 TODO lock doors when player enters a new room, until player defeats all enemies in the room
 TODO use boss circfill transition for floor transitions
 TODO replace boss circfill transition with fadeout transition
-DONE fix bullet collisions with player
 
 ## boss 1 design
 DONE add "dead-end" flag to rooms. Dead ends can be picked for use as special rooms (e.g. Boss, Shop, Item, Upgrade, etc)
