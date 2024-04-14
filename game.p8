@@ -19,6 +19,8 @@ function ply_shoot()
    ply.near_enemy,
    spd_seeker)
  end
+ -- knockback
+ ply.knock=v_mul(v_neg(ply.sh_dir),2)
  add(bullets,bullet)
  return bullet
 end
@@ -97,6 +99,7 @@ function dmg_ply(n)
  ply.health-=n or 1
  -- 2 seconds of iframes
  ply.iframes=120
+ hitsleep=15
 end
 
 function present_lvlup()
@@ -122,11 +125,13 @@ function entity(c_rad,
  --  drawing info
  local ent={
   -- top left position
-  pos=vec(0,0),
+  pos=v_cpy(v_zero),
   -- subpixel pos
-  subpos=vec(0,0),
+  subpos=v_cpy(v_zero),
   -- velocity
-  vel=vec(0,0),
+  vel=v_cpy(v_zero),
+  -- knockback
+  knock=v_cpy(v_zero),
   
   -- collision
   -- 
@@ -134,9 +139,9 @@ function entity(c_rad,
   -- bullet collision radius
   c_rad=c_rad or 1,
   -- aabb's offset from pos
-  c_off=c_off or vec(0,0),
+  c_off=c_off or v_cpy(v_zero),
   -- aabb's size
-  c_size=c_size or vec(0,0),
+  c_size=c_size or v_cpy(v_zero),
   
   -- drawing/sprites
   -- 
@@ -207,6 +212,14 @@ function entity(c_rad,
  end
 
  function ent.move()
+  if not v_eq(ent.knock,v_zero) then
+   ent.subpos=v_add(ent.subpos,ent.knock)
+   if v_magsq(ent.knock)<=1 then
+    ent.knock=v_cpy(v_zero)
+   else
+    ent.knock=v_sub(ent.knock,v_norm(ent.knock))
+   end
+  end
 	 ent.subpos=v_add(ent.subpos,ent.vel)
 	 
 	 local left=ent.pos.x+ent.c_off.x
@@ -350,6 +363,9 @@ function _init()
  cam_x=64
  cam_y=64
  
+ -- hitsleep & shake
+ hitsleep=0
+ 
  dungeon={
   rnd(floor_plans),
   rnd(floor_plans),
@@ -366,12 +382,12 @@ function _init()
  local plan=dungeon[floor_idx]
  floor=floor_from_plan(plan)
  room=floor[cell_x][cell_y]
- --add(room.enemies,e_walker(vec(20,20)))
+ add(room.enemies,e_walker(vec(20,20)))
  --add(room.enemies,e_jumper(vec(20,20)))
  --add(room.enemies,e_heavy(vec(20,20)))
  
  ply.upd_coords()
- --room.enemies[1].upd_coords()
+ room.enemies[1].init()
  
  -- todo: do we really want
  --  to present this on startup?
@@ -401,6 +417,11 @@ function _update60()
 end
 
 function update_normal()
+ if hitsleep>0 then
+  hitsleep-=1
+  return
+ end
+
  if ply.health <=0 then
   update_dead()
   return
@@ -680,8 +701,8 @@ function draw_normal()
   room.t.draw()
   draw_doors()
  end
- if (ply.iframes%10)<7 then
-  ply:draw()
+ if (ply.iframes%10)<7 or hitsleep>0 then
+  ply.draw()
  end
  draw_bullets()
  draw_enemies()
@@ -1631,7 +1652,7 @@ function e_walker(pos)
  e.spd=0.25
  
  function e.update()
-  e.vel=v_mul(v_dir(ply.pos,e.pos),e.spd)
+  e.vel=v_mul(v_dir(e.pos,ply.pos),e.spd)
 	 e.move()
 	 if e.aabb(ply) then
 	  dmg_ply()
