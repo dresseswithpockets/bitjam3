@@ -357,8 +357,8 @@ function _init()
  floor=floor_from_plan(plan)
  room=floor[cell_x][cell_y]
  --add(room.enemies,e_walker(vec(20,20)))
- add(room.enemies,e_jumper(vec(20,20)))
- --add(room.enemies,e_heavy(vec(2,2)))
+ --add(room.enemies,e_jumper(vec(20,20)))
+ add(room.enemies,e_heavy(vec(20,20)))
  
  ply.upd_coords()
  room.enemies[1].upd_coords()
@@ -581,8 +581,8 @@ end
 function update_bullets()
  for i=#bullets,1,-1 do
   local bul=bullets[i]
-  bul:upd_coords()
-  bul:upd_spr()
+  bul.upd_coords()
+  bul.upd_spr()
   local bx,by=v_unpck(bul.s_center)
   if bx<0 or
     bx>256 or
@@ -1705,73 +1705,66 @@ function e_jumper(pos)
  return e
 end
 
-function e_heavy(tile)
+function e_heavy(pos)
  local state_normal=0
  local state_waitshoot=1
- local self={
-  tile=tile,
-  tile_frac=v_cpy(v_zero),
-  velocity=v_cpy(v_zero),
-  -- drawing
-  sx=56,sy=0,
-  spr_size=vector(16,16),
-  -- collision
-  radius=4,
-  ox=4,oy=4,
-  w=7,h=8,
-  
-  spd=8/60,
-  
-  health=100,
-  
-  -- will always stay away
-  -- from this distance to the player
-  min_dist=40,
-  -- moves towards the player until
-  -- its less than this distance
-  -- then attacks
-  keep_dist=70,
-  -- todo: add another distance
-  --  to fix for jitter between
-  --  min_ist and keep_dist
-  next_shot_delay=90,
-  pre_shot_delay=30,
-  
-  -- 3/4 pi radians
-  shot_arc=0.375,
-  shot_count=5,
-  shot_start_radius=8,
-  shot_life=15,
-  shot_spd=2.25,
- }
+ local e=enemy(
+  pos,
+  4,
+  vec(4,4),
+  vec(7,8),
+  -- spr can be either 5 or 6
+  vec(56,0),
+  vec(16,16),
+  100) -- health
  
- self.next_shot_timer=0
- self.pre_shot_timer=0
- self.sqr_min_dist=self.min_dist*self.min_dist
- self.sqr_keep_dist=self.keep_dist*self.keep_dist
+ e.spd=8/60
+  
+ -- will always stay away
+ -- from this distance to the player
+ e.min_dist=40
+ -- moves towards the player until
+ -- its less than this distance
+ -- then attacks
+ e.keep_dist=70
+ -- todo: add another distance
+ --  to fix for jitter between
+ --  min_ist and keep_dist
+ e.next_shot_delay=90
+ e.pre_shot_delay=30
  
- function self.update()
-  local pcenter=center(ply)
-  local ecenter=center(self)
-  local d=v_dstsq(ecenter,pcenter)
-	 local too_close=check_vdst(ecenter,pcenter,self.min_dist) and d<self.sqr_min_dist
-	 local close_enough=check_vdst(ecenter,pcenter,self.keep_dist) and d<self.sqr_keep_dist
+ -- 3/4 pi radians
+ e.shot_arc=0.375
+ e.shot_count=5
+ e.shot_start_radius=8
+ e.shot_life=15
+ e.shot_spd=2.25
+ 
+ e.next_shot_timer=0
+ e.pre_shot_timer=0
+ e.sqr_min_dist=e.min_dist*e.min_dist
+ e.sqr_keep_dist=e.keep_dist*e.keep_dist
+ 
+ function e.update()
+  local d=v_dstsq(e.c_center,ply.c_center)
+	 local too_close=check_vdst(e.c_center,ply.c_center,e.min_dist) and d<e.sqr_min_dist
+	 local close_enough=check_vdst(e.c_center,ply.c_center,e.keep_dist) and d<e.sqr_keep_dist
 	 
-	 if self.next_shot_timer>0 then
-	  self.next_shot_timer-=1
+	 if e.next_shot_timer>0 then
+	  e.next_shot_timer-=1
 	  -- if i'm not able to shoot
 	  -- then dont stop to shoot
-	  if self.next_shot_timer>0 then
+	  if e.next_shot_timer>0 then
 	   close_enough=false
 	  end
 	 end
 	 
-	 if self.pre_shot_timer>0 then
-	  self.pre_shot_timer-=1
+	 if e.pre_shot_timer>0 then
+	  e.pre_shot_timer-=1
 	  -- shoot at ply!
-	  if self.pre_shot_timer==0 then
-	   self:shoot_ply()
-	   self.next_shot_timer=self.next_shot_delay
+	  if e.pre_shot_timer==0 then
+	   e.shoot_ply()
+	   e.next_shot_timer=e.next_shot_delay
 	  elseif not too_close then
 	   return true
 	  end
@@ -1780,30 +1773,38 @@ function e_heavy(tile)
 	 -- if im just close enough to
 	 -- ply, stand still and shoot
 	 if close_enough then
-	  self.velocity=v_cpy(v_zero)
-	  self.pre_shot_timer=self.pre_shot_delay
+	  e.vel=v_cpy(v_zero)
+	  e.pre_shot_timer=e.pre_shot_delay
 	 end
 	 
 	 -- if im too close to ply
 	 -- then move back in the 
 	 -- opposite direction
 	 if too_close then
-   self.velocity=v_mul(v_dir(ecenter,pcenter),-self.spd)
+   e.vel=v_mul(v_dir(e.c_center,ply.c_center),-e.spd)
 	 elseif not close_enough then
-   self.velocity=v_mul(v_dir(ecenter,pcenter),self.spd)
+   e.vel=v_mul(v_dir(e.c_center,ply.c_center),e.spd)
 	 end
 	 
-	 move_ent(self)
-	 if aabb(self,ply) then
+	 e.move()
+	 if e.aabb(ply) then
 	  dmg_ply()
 	 end
  end
  
- self.shoot_ply=e_shoot_ply(self)
- self.draw=e_draw_func(self)
- self.dmg=e_dmg_func(self)
+ function e.shoot_ply()
+  shoot_multi(
+  	e.c_center,
+   v_dir(e.c_center,ply.c_center),
+  	e.shot_arc,
+  	e.shot_count,
+  	e.shot_start_radius,
+  	e.shot_life,
+  	e.shot_spd,
+  	e.shot_fac)
+ end
  
- return self
+ return e
 end
 
 function lerp(a,b,t)
