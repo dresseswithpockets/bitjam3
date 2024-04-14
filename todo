@@ -88,13 +88,13 @@ TODO a sprite for each upgrade, which we can render on the players HUD as they u
 TODO minimap sprite representing a boss room/door (like a skull or something)
 
 # sfx
-TODO menu cursor move sfx
-TODO menu item select sfx
+DONE menu cursor move sfx
+DONE menu item select sfx
 TODO player light shot sfx
 TODO player seeker/heavy shot sfx
 TODO player take damage sfx
 TODO player moving sfx (?)
-TODO player enter/exit door SFX
+DONE player enter/exit door SFX
 TODO heavy enemy shot sfx (could probably be the same as the player's heavy shot sfx)
 TODO boss cluster shot sfx (could probably be the same as the player's light shot sfx)
 TODO boss death SFX (a funny explosion, pawbably)
