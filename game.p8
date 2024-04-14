@@ -6,7 +6,7 @@ debug=true
 function ply_shoot()
  local bullet=nil
  if ply.form==1 then
-  bullet=b_multi(
+  bullet=b_linear(
    v_cpy(ply.c_center),
    v_mul(ply.sh_dir,spd_bullet),
    t_player)
@@ -34,12 +34,11 @@ function start_boss_enter1()
 end
 
 function start_boss_enter2()
- local boss=room.boss_func(vector(7,2))
+ local boss=room.boss_func(vec(56,16))
  add(room.enemies,boss)
-	ply.tile_frac.x=4
- ply.tile_frac.y=4
- ply.tile.x=7
- ply.tile.y=11
+ boss.init()
+	ply.pos=vec(60,92)
+	ply.upd_coords()
  room_state=r_boss_enter2
  room_state_timer=room_boss_fade_time
 end
@@ -79,7 +78,7 @@ function goto_room(rx,ry,tcx,tcy,dir)
 end
 
 function goto_first_room_dir(dir)
- for _,l in ipairs(room.links) do
+ for l in all(room.links) do
   local ppos=ply.pos
   if dir==d_up or dir==d_down then 
    if l.dir==dir and ppos.x>=l.door.x1-2 and ppos.x<=l.door.x2+2 then
@@ -179,6 +178,11 @@ function entity(c_rad,
 	 return abs(o.pos.x-ent.pos.x)<=d and
 	  abs(o.pos.y-ent.pos.y)<=d
 	end
+	
+	ent.init=function()
+	 ent.upd_coords()
+	 ent.upd_spr()
+	end
  
  ent.upd_coords=function()
   ent.c_p1=v_add(ent.pos,ent.c_off)
@@ -200,7 +204,7 @@ function entity(c_rad,
   ent.flip_y=ent.s_vert_lut[ent.s_dir_idx]
  end
 
- ent.move=function()
+ function ent.move()
 	 ent.subpos=v_add(ent.subpos,ent.vel)
 	 
 	 local left=ent.pos.x+ent.c_off.x
@@ -253,6 +257,8 @@ function entity(c_rad,
 		  ent.pos.y-=1
 		 end
 	 end
+	 
+	 return col_left,col_right,col_up,col_down
 	end
  
  ent.draw=function()
@@ -436,6 +442,11 @@ function update_normal()
   use_spd*=ply_spd_shoot_mult
  end
  
+ local toggle_debug=(last_keys&0b100000!=0b100000) and keys_value&0b100000==0b100000
+ if toggle_debug then
+  debug=not debug
+ end
+ 
  -- shift triggers transform
  ply.trans=(last_keys&0b10000!=0b10000) and keys_value&0b10000==0b10000
  if ply.trans then
@@ -477,7 +488,7 @@ function update_normal()
  end
  
  -- updating player pos from vel
- cleft,cright,cup,cdown=ply:move()
+ cleft,cright,cup,cdown=ply.move()
  
  -- test if player touching doors
  if not room.boss then
@@ -633,23 +644,21 @@ function _draw()
   draw_normal()
  elseif room_state==r_boss_enter1 then
   poke(0x5f34, 0x2)
-  local pcenter=center(ply)
   local r=128*(room_state_timer-1)/room_boss_fade_time
-  circfill(pcenter.x,pcenter.y,r,0x1800)
+  circfill(ply.s_center.x,ply.s_center.y,r,0x1800)
   poke(0x5f34, 0x0)
-  circ(pcenter.x,pcenter.y,r,7)
+  circ(ply.s_center.x,ply.s_center.y,r,7)
  elseif room_state==r_boss_enter2 then
   cls()
   draw_boss_room()
   draw_enemies()
-  ply:draw()
+  ply.draw()
   draw_ply_hp()
   poke(0x5f34, 0x2)
-  local pcenter=center(ply)
   local r=128*(room_boss_fade_time-room_state_timer)/room_boss_fade_time
-  circfill(pcenter.x,pcenter.y,r,0x1800)
+  circfill(ply.s_center.x,ply.s_center.y,r,0x1800)
   poke(0x5f34, 0x0)
-  circ(pcenter.x,pcenter.y,r,7)
+  circ(ply.s_center.x,ply.s_center.y,r,7)
  end
 end
 
@@ -964,8 +973,8 @@ end
 
 function topleft(ent)
  local v=vector(
-  ent.tile.x*8+ent.tile_frac.x,
-  ent.tile.y*8+ent.tile_frac.y)
+  ent.pos.x,
+  ent.pos.y)
  if ent.spr_off then
   v=v_add(v,ent.spr_off)
  end
@@ -1029,12 +1038,26 @@ function bullet(pos,
  b.pos=v_sub(v_add(v_flr(pos),v_half),vec(3.5,3.5))
  b.vel=vel
  b.team=team
- b.lifetime=lifetime
+ b.lifetime=lifetime or 0
  b.rate_mult=1
  b.dmg_mult=1
  
  b.update=function()
+  if b.lifetime==-1 then
+   return false
+  end
   b.move()
+  if b.lifetime>0 then
+   b.lifetime-=1
+   if b.lifetime==0 then
+    -- mark this bullet to be
+    -- deleted next frame. we
+    -- do this so that it still
+    -- has a chance to dmg other
+    -- entities/the player
+    b.lifetime=-1
+   end
+  end
   return true
  end
 
@@ -1092,7 +1115,7 @@ function b_multi(pos,vel,team,lifetime)
  b.multi_cnt=3
  b.buls={}
  
- b.update=function()
+ function b.update()
 	 if #b.buls!=b.multi_cnt then
 	  b.buls={}
 	  for i=1,b.multi_cnt do
@@ -1112,7 +1135,7 @@ function b_multi(pos,vel,team,lifetime)
   return true
  end
  
- b.circ=function(o)
+ function b.circ(o)
 	 for _,bul in ipairs(b.buls) do
 	  local min_d=b.c_rad+o.c_rad
 	  if o.near(bul) then
@@ -1126,7 +1149,7 @@ function b_multi(pos,vel,team,lifetime)
 	 return false
  end
  
- b.draw=function()
+ function b.draw()
   for bul in all(b.buls) do
    sspr(
 	   b.use_sx,b.use_sy,
@@ -1134,13 +1157,6 @@ function b_multi(pos,vel,team,lifetime)
 	   bul.sprpos.x,bul.sprpos.y,
 	   b.s_size.x,b.s_size.y)
 	  if debug then
-	   -- draw top left, bottom right
-	   pset(bul.pos.x,bul.pos.y,11)
-	   pset(
-	   	bul.pos.x+b.s_size.x,
-	   	bul.pos.y+b.s_size.y,
-	   	11)
-	   -- draw radius
 	   circ(bul.pos.x,bul.pos.y,b.c_rad)
 	  end
   end
@@ -1558,9 +1574,21 @@ function enemy(pos,
  e.pos=pos
  e.health=health
 
- e.dmg=function(n)
+ function e.dmg(n)
   e.health-=n
  	return e.health>0
+ end
+ 
+ function e.shoot_ply()
+  shoot_multi(
+  	e.c_center,
+   v_dir(e.c_center,ply.c_center),
+  	e.shot_arc,
+  	e.shot_count,
+  	e.shot_start_radius,
+  	e.shot_life,
+  	e.shot_spd,
+  	e.shot_fac)
  end
 
  return e
@@ -1666,11 +1694,11 @@ function e_heavy(pos)
  e.pre_shot_delay=30
  
  -- 3/4 pi radians
- e.shot_arc=0.375
- e.shot_count=5
+ e.shot_arc=0.1
+ e.shot_count=4
  e.shot_start_radius=8
- e.shot_life=15
- e.shot_spd=2.25
+ e.shot_life=12
+ e.shot_spd=4
  
  e.next_shot_timer=0
  e.pre_shot_timer=0
@@ -1724,18 +1752,6 @@ function e_heavy(pos)
 	 end
  end
  
- function e.shoot_ply()
-  shoot_multi(
-  	e.c_center,
-   v_dir(e.c_center,ply.c_center),
-  	e.shot_arc,
-  	e.shot_count,
-  	e.shot_start_radius,
-  	e.shot_life,
-  	e.shot_spd,
-  	e.shot_fac)
- end
- 
  return e
 end
 
@@ -1743,71 +1759,65 @@ function lerp(a,b,t)
 	return a+(b-a)*t
 end
 
-function e_boss_lilguy(tile)
- local self={
-  tile=tile,
-  tile_frac=v_cpy(v_zero),
-  -- drawing
-  sx=88,sy=16,
-  spr_size=vector(16,16),
-  -- collision
-  radius=13,
-  ox=1.5,oy=1.5,
-  w=13,h=13,
-  
-  health=500,
+function e_boss_lilguy(pos)
+ local e=enemy(
+  pos,
+  13,
+  vec(1.5,1.5),
+  vec(13,13),
+  -- spr can be either 5 or 6
+  vec(88,16),
+  vec(16,16),
+  500) -- health
 
-  -- lilguy
-  -- left-right movement
-  bound_l=8,
-  bound_r=104,
-  tx_time_min=12,
-  tx_time_max=120,
-  -- firing
-  shot_arc=0.2,
-  shot_count=3,
-  shot_start_radius=1,
-  shot_life=0,
-  shot_spd=0.6,
-  shot_fac=b_multi,
-  shoot_timer=80,
-  shoot_time=90,
- }
+ -- lilguy
+ -- left-right movement
+ e.bound_l=8
+ e.bound_r=104
+ e.tx_time_min=12
+ e.tx_time_max=120
+ -- firing
+ e.shot_arc=0.2
+ e.shot_count=3
+ e.shot_start_radius=1
+ e.shot_life=0
+ e.shot_spd=0.6
+ e.shot_fac=b_multi
+ e.shoot_timer=80
+ e.shoot_time=90
  
- self.last_tx=center(self).x
- self.next_tx=rnd(self.bound_r-self.bound_l)+self.bound_l
- self.tx_time=flr(rnd(self.tx_time_max-self.tx_time_min)+self.tx_time_min)
- self.tx_timer=self.tx_time
+ e.last_tx=e.pos.x
+ e.next_tx=rnd(e.bound_r-e.bound_l)+e.bound_l
+ e.tx_time=flr(rnd(e.tx_time_max-e.tx_time_min)+e.tx_time_min)
+ e.tx_timer=e.tx_time
  
- function self.update()
+ function e.update()
   local x=lerp(
-   self.next_tx,
-   self.last_tx,
-   self.tx_timer/self.tx_time)
-  self.tile.x=x\8
-  self.tile_frac.x=x%8
-  self.tx_timer-=1
-  if self.tx_timer==0 then
-   self.last_tx=self.next_tx
-   self.next_tx=rnd(self.bound_r-self.bound_l)+self.bound_l
-   self.tx_time=flr(rnd(self.tx_time_max-self.tx_time_min)+self.tx_time_min)
-   self.tx_timer=self.tx_time
+   e.next_tx,
+   e.last_tx,
+   e.tx_timer/e.tx_time)
+  e.pos.x=x
+  e.tx_timer-=1
+  if e.tx_timer==0 then
+   e.last_tx=e.next_tx
+   e.next_tx=rnd(e.bound_r-e.bound_l)+e.bound_l
+   e.tx_time=flr(rnd(e.tx_time_max-e.tx_time_min)+e.tx_time_min)
+   e.tx_timer=e.tx_time
   end
-  self.shoot_timer-=1
-  if self.shoot_timer==0 then
-   self:shoot_ply()
-   self.shoot_timer=self.shoot_time
+  e.shoot_timer-=1
+  if e.shoot_timer==0 then
+   e.shoot_ply()
+   e.shoot_timer=e.shoot_time
   end
-	 if aabb(self,ply) then
+  
+  e.upd_coords()
+  e.upd_spr()
+	 if e.aabb(ply) then
 	  dmg_ply()
 	 end
  end
-
- self.shoot_ply=e_shoot_ply(self)
- self.draw=e_draw_func(self)
- self.dmg=e_dmg_func(self)
  
- return self
+ return e
 end
 
 function shoot_multi(pos,dir,arc,n,r,lt,spd,b_fac)
@@ -1817,54 +1827,13 @@ function shoot_multi(pos,dir,arc,n,r,lt,spd,b_fac)
  for i=1,n do
   dir=v_rot(dir,bul_arc)
   local bpos=v_add(pos,v_mul(dir,r))
-  local btile=v_divi(bpos,8)
-  local btile_frac=v_mod(bpos,8)
   local bullet=b_fac(
-   btile,
-   btile_frac,
+   pos,
    v_mul(dir,spd),
    t_enemy,
    lt)
-  bullet.base_spr=3
-  bullet.use_spr_lut=false
+  bullet.init()
   add(bullets,bullet)
- end
-end
-
-function e_shoot_ply(e)
- return function()
-  local ecenter=center(e)
-  shoot_multi(
-  	ecenter,
-   v_dir(ecenter,center(ply)),
-  	e.shot_arc,
-  	e.shot_count,
-  	e.shot_start_radius,
-  	e.shot_life,
-  	e.shot_spd,
-  	e.shot_fac)
- end
-end
-
-function e_draw_func(e)
- return function()
-  local xy=v_add(v_flr(topleft(e)), v_half)
-	 local flip_x=xy.x<topleft(ply).x
-	 sspr(
-	 	e.sx,e.sy,
-	 	e.spr_size.x,e.spr_size.y,
-	 	xy.x,xy.y,
-	 	e.spr_size.x,e.spr_size.y,
-	 	flip_x,false)
-	 local r1,r2=ent_rect(e)
-	 rect(r1.x,r1.y,r2.x,r2.y,9)
- end
-end
-
-function e_dmg_func(e)
- return function(n)
- 	e.health-=n
- 	return e.health>0
  end
 end
 
