@@ -42,6 +42,7 @@ TODO lock doors when player enters a new room, until player defeats all enemies 
 TODO use boss circfill transition for floor transitions
 TODO replace boss circfill transition with fadeout transition
 TODO precalculate topleft and center after every move, so that center() and topleft() can be removed
+TODO integrate menu SFX
 
 ## boss 1 design
 DONE add "dead-end" flag to rooms. Dead ends can be picked for use as special rooms (e.g. Boss, Shop, Item, Upgrade, etc)

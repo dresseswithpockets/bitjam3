@@ -1045,8 +1045,8 @@ function bullet(pos,
 
 	 local s=b.s_lut[angle]
 	 if s==nil then
-	  b.use_sx=ent.s_x
-	  b.use_sy=ent.s_y
+	  b.use_sx=b.s_x
+	  b.use_sy=b.s_y
 	  return
 	 end
 	 
@@ -1083,7 +1083,8 @@ function b_multi(pos,vel,team,lifetime)
   vec(24,0),
   vec(7,7),
   team,
-  lifetime)
+  lifetime,
+  {},{},{})
 
  b.multi_ang=0
  b.multi_rot_spd=1/120
@@ -1101,10 +1102,10 @@ function b_multi(pos,vel,team,lifetime)
 	 for i,bul in ipairs(b.buls) do
 	  local frac=i/b.multi_cnt
 	  -- bul center (used for collision)
-	  bul.center.x=b.pos.x+cos(self.multi_ang+frac)*b.multi_radius
-	  bul.center.y=b.pos.y+sin(self.multi_ang+frac)*b.multi_radius
+	  bul.pos.x=b.pos.x+cos(b.multi_ang+frac)*b.multi_radius
+	  bul.pos.y=b.pos.y+sin(b.multi_ang+frac)*b.multi_radius
 	  -- bul sprite pos
-	  bul.sprpos=v_sub(bul.center,v_div(b.spr_size, 2))
+	  bul.sprpos=v_sub(bul.pos,v_div(b.s_size, 2))
 	 end
 	 b.multi_ang+=b.multi_rot_spd
   b.move()
@@ -1128,10 +1129,10 @@ function b_multi(pos,vel,team,lifetime)
  b.draw=function()
   for bul in all(b.buls) do
    sspr(
-	   ent.use_sx,ent.use_sy,
-	   ent.s_size.x,ent.s_size.y,
-	   bul.pos.x,bul.pos.y,
-	   ent.s_size.x,ent.s_size.y)
+	   b.use_sx,b.use_sy,
+	   b.s_size.x,b.s_size.y,
+	   bul.sprpos.x,bul.sprpos.y,
+	   b.s_size.x,b.s_size.y)
 	  if debug then
 	   -- draw top left, bottom right
 	   pset(bul.pos.x,bul.pos.y,11)
@@ -1146,18 +1147,6 @@ function b_multi(pos,vel,team,lifetime)
  end
 
  return b
-end
-
-function b_multi_draw(self)
- for _,bul in ipairs(self.buls) do
-  sspr(
-   self.sx,self.sy,
-   self.spr_size.x,self.spr_size.y,
-   bul.sprpos.x,bul.sprpos.y,
-   self.spr_size.x,self.spr_size.y)
-  pset(bul.center.x,bul.center.y,9)
-  circ(bul.center.x,bul.center.y,self.radius,8)
- end
 end
 
 function b_seeker(pos,dir,team,lifetime,target,spd)
@@ -1221,75 +1210,6 @@ function b_seeker(pos,dir,team,lifetime,target,spd)
  return b
 end
 
-function b_collides(self, ent)
- -- we do an n-scale dist
- -- check before the real
- -- radius-check. p8 uses
- -- a fixed cap of like 32k
- -- so its pretty easy to
- -- cause an overflow when
- -- checking large distances
- local bcenter=center(self)
- local ecenter=center(ent)
- if check_vdst(bcenter,ecenter) then
-  local dist=v_dstsq(bcenter,ecenter)
-  local min_rad=self.radius+ent.radius
-  return dist<min_rad*min_rad
- end
- return false
-end
-
-function b_move(self)
- if self.life_time>0 then
-  self.life_time-=1
-  if self.life_time==0 then
-   return false
-  end
- end
- self.tile_frac=v_add(self.tile_frac,self.velocity)
- --
- -- horizontal
- while self.tile_frac.x>8 do
-  self.tile_frac.x-=8
-  self.tile.x+=1
- end
- while self.tile_frac.x<0 do
-  self.tile_frac.x+=8
-  self.tile.x-=1
- end
- 
- --
- -- vertical
- while self.tile_frac.y>8 do
-  self.tile_frac.y-=8
-  self.tile.y+=1
- end
- while self.tile_frac.y<0 do
-  self.tile_frac.y+=8
-  self.tile.y-=1
- end
- return true
-end
-
-function b_draw(self)
- local angle=v_ang(self.velocity)
- angle+=0.0625 -- [0.0625,1.0625)
- angle=flr(angle*8) -- [0,8]
- local bspr=self.base_spr
- local lut=bul_spr_lut[angle+1]
- if not self.use_spr_lut then
-  lut={0,false,false}
- end
- local bpos=topleft(self)
- spr(
-  bspr+lut[1],
-  bpos.x, bpos.y,
-  1, 1,
-  lut[2], lut[3])
- local bx,by=v_unpck(center(self))
- pset(bx,by,9)
- circ(bx,by,self.radius,8)
-end
 -->8
 -- floor plan presets
 
