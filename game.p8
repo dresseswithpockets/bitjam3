@@ -6,7 +6,7 @@ debug=true
 function ply_shoot()
  local bullet=nil
  if ply.form==1 then
-  bullet=b_linear(
+  bullet=b_multi(
    v_cpy(ply.c_center),
    v_mul(ply.sh_dir,spd_bullet),
    t_player)
@@ -358,10 +358,10 @@ function _init()
  room=floor[cell_x][cell_y]
  --add(room.enemies,e_walker(vec(20,20)))
  --add(room.enemies,e_jumper(vec(20,20)))
- add(room.enemies,e_heavy(vec(20,20)))
+ --add(room.enemies,e_heavy(vec(20,20)))
  
  ply.upd_coords()
- room.enemies[1].upd_coords()
+ --room.enemies[1].upd_coords()
  
  -- todo: do we really want
  --  to present this on startup?
@@ -689,20 +689,19 @@ function draw_boss_room()
 end
 
 function draw_bullets()
- for _,b in ipairs(bullets) do
-  b:draw()
+ for b in all(bullets) do
+  b.draw()
  end
 end
 
 function draw_enemies()
- for i=#room.enemies,1,-1 do
-  local e=room.enemies[i]
-  e:draw()
+ for e in all(room.enemies) do
+  e.draw()
  end
 end
 
 function draw_doors()
- for _,l in ipairs(room.links) do
+ for l in all(room.links) do
   spr(l.door.spr1,l.door.x1,l.door.y1,1,1,l.door.flip_x,l.door.flip_y)
   spr(l.door.spr1+1,l.door.x2,l.door.y2,1,1,l.door.flip_x,l.door.flip_y)
  end
@@ -1075,65 +1074,78 @@ function b_linear(pos,vel,team,lifetime)
  return b
 end
 
-function b_multi(tile,tile_frac,velocity,team,life_time)
- return {
-  tile=tile,
-  tile_frac=tile_frac,
-  velocity=velocity,
-  base_spr=3,
-  sx=24,sy=0,
-  spr_size=vector(7,7),
-  update=b_multi_update,
-  collides=b_multi_collides,
-  draw=b_multi_draw,
-  radius=3,
-  team=team,
-  rate_mult=1,
-  dmg_mult=1,
-  life_time=life_time or 0,
-  
-  multi_ang=0,
-  multi_rot_spd=1/120,
-  multi_radius=3,
-  multi_cnt=3,
-  buls={},
- }
-end
+function b_multi(pos,vel,team,lifetime)
+ local b=bullet(
+  pos,
+  vel,
+  3,
+  vec(7,7),
+  vec(24,0),
+  vec(7,7),
+  team,
+  lifetime)
 
-function b_multi_update(self)
- if #self.buls!=self.multi_cnt then
-  self.buls={}
-  for i=1,self.multi_cnt do
-  	add(self.buls, {sprpos=v_cpy(v_zero),center=v_cpy(v_zero)})
-  end
- end
- local bpos=topleft(self)
- for i,bul in ipairs(self.buls) do
-  local frac=i/self.multi_cnt
-  -- bul center (used for collision)
-  bul.center.x=bpos.x+cos(self.multi_ang+frac)*self.multi_radius
-  bul.center.y=bpos.y+sin(self.multi_ang+frac)*self.multi_radius
-  -- bul sprite pos
-  bul.sprpos=v_sub(bul.center,v_div(self.spr_size, 2))
- end
- self.multi_ang+=self.multi_rot_spd
- b_move(self)
+ b.multi_ang=0
+ b.multi_rot_spd=1/120
+ b.multi_radius=3
+ b.multi_cnt=3
+ b.buls={}
  
- return true
-end
-
-function b_multi_collides(self, ent)
- local ecenter=center(ent)
- for _,bul in ipairs(self.buls) do
-  if check_dist(ecenter.x,ecenter.y,bul.center.x,bul.center.y) then
-	  local dist=v_dstsq(ecenter,bul.center)
-	  local min_rad=self.radius+ent.radius
-	  if dist<min_rad*min_rad then
-	   return true
+ b.update=function()
+	 if #b.buls!=b.multi_cnt then
+	  b.buls={}
+	  for i=1,b.multi_cnt do
+	  	add(b.buls, {sprpos=v_cpy(v_zero),pos=v_cpy(v_zero)})
 	  end
 	 end
+	 for i,bul in ipairs(b.buls) do
+	  local frac=i/b.multi_cnt
+	  -- bul center (used for collision)
+	  bul.center.x=b.pos.x+cos(self.multi_ang+frac)*b.multi_radius
+	  bul.center.y=b.pos.y+sin(self.multi_ang+frac)*b.multi_radius
+	  -- bul sprite pos
+	  bul.sprpos=v_sub(bul.center,v_div(b.spr_size, 2))
+	 end
+	 b.multi_ang+=b.multi_rot_spd
+  b.move()
+  return true
  end
- return false
+ 
+ b.circ=function(o)
+	 for _,bul in ipairs(b.buls) do
+	  local min_d=b.c_rad+o.c_rad
+	  if o.near(bul) then
+		  local d=v_dstsq(bul.pos,o.c_center)
+		  local rad=b.c_rad+o.c_rad
+		  if d<rad*rad then
+		   return true
+		  end
+		 end
+	 end
+	 return false
+ end
+ 
+ b.draw=function()
+  for bul in all(b.buls) do
+   sspr(
+	   ent.use_sx,ent.use_sy,
+	   ent.s_size.x,ent.s_size.y,
+	   bul.pos.x,bul.pos.y,
+	   ent.s_size.x,ent.s_size.y)
+	  if debug then
+	   -- draw top left, bottom right
+	   pset(bul.pos.x,bul.pos.y,11)
+	   pset(
+	   	bul.pos.x+b.s_size.x,
+	   	bul.pos.y+b.s_size.y,
+	   	11)
+	   -- draw radius
+	   circ(bul.pos.x,bul.pos.y,b.c_rad)
+	  end
+  end
+ end
+
+ return b
 end
 
 function b_multi_draw(self)
