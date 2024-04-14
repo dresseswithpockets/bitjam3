@@ -27,7 +27,6 @@ DONE add boss enemy with bullet hell pattern attacks
 DONE add shooting-induced knockback to player
 DONE add hitstop/hitsleep when taking damage
 DONE add hitstop/hitsleep when killing an enemy
-TODO add variation to floor plans by randomly flipping them horizontally and vertically when generating the dungeon
 TODO add door which transitions to a new floor
 TODO update floor plan selection to run whenever the player enters a new floor
 TODO enemy death gibs with some bounciness/physics
@@ -42,6 +41,7 @@ TODO use boss circfill transition for floor transitions
 TODO replace boss circfill transition with fadeout transition
 TODO precalculate topleft and center after every move, so that center() and topleft() can be removed
 TODO integrate menu SFX
+TODO camerashake on death & killing an enemy
 
 ## boss 1 design
 DONE add "dead-end" flag to rooms. Dead ends can be picked for use as special rooms (e.g. Boss, Shop, Item, Upgrade, etc)
@@ -54,6 +54,7 @@ TODO funny explosion when boss dies :3
 
 ## biiiig stretch
 DONE fix cobblestoning
+TODO add variation to floor plans by randomly flipping them horizontally and vertically when generating the dungeon
 TODO clean up & animate door transitions
 TODO clean up & animate lvlup menu
 TODO add main menu

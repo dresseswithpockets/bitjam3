@@ -1405,19 +1405,19 @@ fp_2={
 fp_3_32={
  t=room_types.square,
  links={
-   {dcx=0,dcy=0,dir=d_down,trx=3,try=3,tcx=0,tcy=0,},
+   {dcx=0,dcy=0,dir=d_up,trx=3,try=3,tcx=0,tcy=0,},
  },
 }
 fp_3_33={
  t=room_types.square,
  links={
-   {dcx=0,dcy=0,dir=d_up,trx=3,try=2,tcx=0,tcy=0,},
+   {dcx=0,dcy=0,dir=d_down,trx=3,try=4,tcx=0,tcy=0,},
  },
 }
 fp_3={
  {{},{},{},{},{},},
  {{},{},{},{},{},},
- {{},fp_3_32,fp_3_33,{},{},},
+ {{},{},fp_3_33,fp_3_32,{},},
  {{},{},{},{},{},},
  {{},{},{},{},{},},
 }
@@ -1430,10 +1430,10 @@ floor_plans={
 }
 
 function precalc_doors()
- for _,plan in ipairs(floor_plans) do
- for _,col in ipairs(plan) do
- for _,cell in ipairs(col) do
- for _,link in ipairs(cell.links) do
+ for plan in all(floor_plans) do
+ for col in all(plan) do
+ for cell in all(col) do
+ for link in all(cell.links) do
   local door={
    x1=0,y1=0,
    x2=0,y2=0,
@@ -1476,7 +1476,22 @@ function precalc_doors()
  end
 end
 
+function precalc_flips()
+ local new_plans={}
+ for plan in all(floor_plans) do
+  local hori={}
+  for x,col in ipairs(plan) do
+   hori[1+#plan-x]=col
+  end
+  add(new_plans,hori)
+ end
+ for plan in all(new_plans) do
+  add(floor_plans,plan)
+ end
+end
+
 precalc_doors()
+--precalc_flips()
 
 function floor_from_plan(plan)
  local ends={}
