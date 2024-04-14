@@ -19,6 +19,8 @@ function ply_shoot()
    ply.near_enemy,
    spd_seeker)
  end
+ -- knockback
+ ply.knock=v_mul(v_neg(ply.sh_dir),2)
  add(bullets,bullet)
  return bullet
 end
@@ -97,6 +99,7 @@ function dmg_ply(n)
  ply.health-=n or 1
  -- 2 seconds of iframes
  ply.iframes=120
+ hitsleep=15
 end
 
 function present_lvlup()
@@ -122,11 +125,13 @@ function entity(c_rad,
  --  drawing info
  local ent={
   -- top left position
-  pos=vec(0,0),
+  pos=v_cpy(v_zero),
   -- subpixel pos
-  subpos=vec(0,0),
+  subpos=v_cpy(v_zero),
   -- velocity
-  vel=vec(0,0),
+  vel=v_cpy(v_zero),
+  -- knockback
+  knock=v_cpy(v_zero),
   
   -- collision
   -- 
@@ -134,9 +139,9 @@ function entity(c_rad,
   -- bullet collision radius
   c_rad=c_rad or 1,
   -- aabb's offset from pos
-  c_off=c_off or vec(0,0),
+  c_off=c_off or v_cpy(v_zero),
   -- aabb's size
-  c_size=c_size or vec(0,0),
+  c_size=c_size or v_cpy(v_zero),
   
   -- drawing/sprites
   -- 
@@ -195,7 +200,9 @@ function entity(c_rad,
   local s=ent.s_lut[ent.s_dir_idx]
   if s==nil then
 	  ent.use_sx=ent.s_x
-	  ent.use_sy=ent.s_y
+	  ent.use_sy=ent.s_y 
+   ent.flip_x=ent.s_hori_lut[ent.s_dir_idx]
+   ent.flip_y=ent.s_vert_lut[ent.s_dir_idx]
 	  return
   end
   ent.use_sx=8*(s%16)
@@ -205,6 +212,14 @@ function entity(c_rad,
  end
 
  function ent.move()
+  if not v_eq(ent.knock,v_zero) then
+   ent.subpos=v_add(ent.subpos,ent.knock)
+   if v_magsq(ent.knock)<=1 then
+    ent.knock=v_cpy(v_zero)
+   else
+    ent.knock=v_sub(ent.knock,v_norm(ent.knock))
+   end
+  end
 	 ent.subpos=v_add(ent.subpos,ent.vel)
 	 
 	 local left=ent.pos.x+ent.c_off.x
@@ -282,6 +297,8 @@ function entity(c_rad,
     12)
    -- draw radius
    circ(ent.c_center.x,ent.c_center.y,ent.c_rad)
+   -- draw center
+   pset(ent.c_center.x,ent.c_center.y,14)
   end
  end
  
@@ -346,6 +363,9 @@ function _init()
  cam_x=64
  cam_y=64
  
+ -- hitsleep & shake
+ hitsleep=0
+ 
  dungeon={
   rnd(floor_plans),
   rnd(floor_plans),
@@ -362,12 +382,12 @@ function _init()
  local plan=dungeon[floor_idx]
  floor=floor_from_plan(plan)
  room=floor[cell_x][cell_y]
- --add(room.enemies,e_walker(vec(20,20)))
+ add(room.enemies,e_walker(vec(20,20)))
  --add(room.enemies,e_jumper(vec(20,20)))
  --add(room.enemies,e_heavy(vec(20,20)))
  
  ply.upd_coords()
- --room.enemies[1].upd_coords()
+ room.enemies[1].init()
  
  -- todo: do we really want
  --  to present this on startup?
@@ -397,6 +417,11 @@ function _update60()
 end
 
 function update_normal()
+ if hitsleep>0 then
+  hitsleep-=1
+  return
+ end
+
  if ply.health <=0 then
   update_dead()
   return
@@ -617,6 +642,7 @@ function update_bullets()
       end
       if not e.dmg(dmg) then
        deli(room.enemies,ei)
+       hitsleep=15
       end
       deli(bullets,i)
      end
@@ -676,8 +702,8 @@ function draw_normal()
   room.t.draw()
   draw_doors()
  end
- if (ply.iframes%10)<7 then
-  ply:draw()
+ if (ply.iframes%10)<7 or hitsleep>0 then
+  ply.draw()
  end
  draw_bullets()
  draw_enemies()
@@ -718,7 +744,7 @@ end
 
 function draw_ply_hp()
  for i=0,ply.health-1 do
-  spr(4,1+i*9,1)
+  spr(4,1+i*9,119)
  end
 end
 
@@ -1111,9 +1137,12 @@ function b_multi(pos,vel,team,lifetime)
 
  b.multi_ang=0
  b.multi_rot_spd=1/120
+ b.multi_rad_spd=0
  b.multi_radius=3
  b.multi_cnt=3
  b.buls={}
+ 
+ b.multi_base_spd=b.multi_rot_spd
  
  function b.update()
 	 if #b.buls!=b.multi_cnt then
@@ -1122,21 +1151,27 @@ function b_multi(pos,vel,team,lifetime)
 	  	add(b.buls, {sprpos=v_cpy(v_zero),pos=v_cpy(v_zero)})
 	  end
 	 end
+	 if b.multi_rad_spd>0 then
+	  b.multi_radius+=b.multi_rad_spd
+		 -- linear velocity to angular velocity
+		 -- w=v/r
+		 b.multi_rot_spd=b.multi_base_spd/b.multi_radius
+	 end
 	 for i,bul in ipairs(b.buls) do
 	  local frac=i/b.multi_cnt
 	  -- bul center (used for collision)
-	  bul.pos.x=b.pos.x+cos(b.multi_ang+frac)*b.multi_radius
-	  bul.pos.y=b.pos.y+sin(b.multi_ang+frac)*b.multi_radius
+	  bul.pos.x=b.s_center.x+cos(b.multi_ang+frac)*b.multi_radius
+	  bul.pos.y=b.s_center.y+sin(b.multi_ang+frac)*b.multi_radius
 	  -- bul sprite pos
-	  bul.sprpos=v_sub(bul.pos,v_div(b.s_size, 2))
+	  bul.sprpos=v_sub(bul.pos,v_div(b.s_size,2))
 	 end
 	 b.multi_ang+=b.multi_rot_spd
   b.move()
-  return true
+  return b.multi_radius<128
  end
  
  function b.circ(o)
-	 for _,bul in ipairs(b.buls) do
+	 for bul in all(b.buls) do
 	  local min_d=b.c_rad+o.c_rad
 	  if o.near(bul) then
 		  local d=v_dstsq(bul.pos,o.c_center)
@@ -1157,7 +1192,8 @@ function b_multi(pos,vel,team,lifetime)
 	   bul.sprpos.x,bul.sprpos.y,
 	   b.s_size.x,b.s_size.y)
 	  if debug then
-	   circ(bul.pos.x,bul.pos.y,b.c_rad)
+	   circ(bul.pos.x,bul.pos.y,b.c_rad,12)
+	   pset(b.s_center.x,b.s_center.y,14)
 	  end
   end
  end
@@ -1573,6 +1609,16 @@ function enemy(pos,
   {})
  e.pos=pos
  e.health=health
+ 
+ local base_upd_spr=e.upd_spr
+ function e.upd_spr()
+  if e.s_center.x<ply.s_center.x then
+   e.s_dir_idx=1
+  else
+   e.s_dir_idx=2
+  end
+  base_upd_spr()
+ end
 
  function e.dmg(n)
   e.health-=n
@@ -1607,7 +1653,7 @@ function e_walker(pos)
  e.spd=0.25
  
  function e.update()
-  e.vel=v_mul(v_dir(ply.pos,e.pos),e.spd)
+  e.vel=v_mul(v_dir(e.pos,ply.pos),e.spd)
 	 e.move()
 	 if e.aabb(ply) then
 	  dmg_ply()
@@ -1762,13 +1808,19 @@ end
 function e_boss_lilguy(pos)
  local e=enemy(
   pos,
-  13,
+  7,
   vec(1.5,1.5),
   vec(13,13),
   -- spr can be either 5 or 6
   vec(88,16),
   vec(16,16),
-  500) -- health
+  600) -- health
+ 
+ e.maxhp=e.health
+ 
+ e.phase=0
+ e.starting_phase=false
+ e.p2_buls={}
 
  -- lilguy
  -- left-right movement
@@ -1792,22 +1844,30 @@ function e_boss_lilguy(pos)
  e.tx_timer=e.tx_time
  
  function e.update()
-  local x=lerp(
-   e.next_tx,
-   e.last_tx,
-   e.tx_timer/e.tx_time)
-  e.pos.x=x
-  e.tx_timer-=1
-  if e.tx_timer==0 then
-   e.last_tx=e.next_tx
-   e.next_tx=rnd(e.bound_r-e.bound_l)+e.bound_l
-   e.tx_time=flr(rnd(e.tx_time_max-e.tx_time_min)+e.tx_time_min)
-   e.tx_timer=e.tx_time
-  end
-  e.shoot_timer-=1
-  if e.shoot_timer==0 then
-   e.shoot_ply()
-   e.shoot_timer=e.shoot_time
+  if e.phase==0 or e.starting_phase then
+	  local x=lerp(
+	   e.next_tx,
+	   e.last_tx,
+	   e.tx_timer/e.tx_time)
+	  e.pos.x=x
+	  e.tx_timer-=1
+	  
+	  if e.tx_timer==0 then
+	   if e.phase==0 then
+		   e.last_tx=e.next_tx
+		   e.next_tx=rnd(e.bound_r-e.bound_l)+e.bound_l
+		   e.tx_time=flr(rnd(e.tx_time_max-e.tx_time_min)+e.tx_time_min)
+		   e.tx_timer=e.tx_time
+		  end
+	   e.starting_phase=false
+	  end
+	 end
+	 if not e.starting_phase then
+	  e.shoot_timer-=1
+	  if e.shoot_timer==0 then
+	   e.shoot_ply()
+	   e.shoot_timer=e.shoot_time
+	  end
   end
   
   e.upd_coords()
@@ -1815,6 +1875,98 @@ function e_boss_lilguy(pos)
 	 if e.aabb(ply) then
 	  dmg_ply()
 	 end
+ end
+ 
+ local base_draw=e.draw
+ function e.draw()
+  base_draw()
+  -- boss health bar
+  -- todo: make this a baseclass
+  --  for other bosses
+  local hpfrac=e.health/e.maxhp
+  -- hp bar border
+  rectfill(3,3,128-3,7,0)
+  rect(3,3,128-3,7,7)
+  -- hp bar fill
+  local left=5
+  local right=128-5
+  local x=lerp(left,right,hpfrac)
+  line(left,5,x,5,7)
+  -- hp bar sections (phases)
+  x=lerp(left,right,0.66)
+  pset(x,5,0)
+  x=lerp(left,right,0.33)
+  pset(x,5,0)
+ end
+ 
+ function e.next_phase()
+  e.phase+=1
+  e.starting_phase=true
+  
+  -- go to the center slowly
+  e.last_tx=e.pos.x
+  e.next_tx=64-e.s_size.x/2
+  e.tx_time=e.tx_time_max
+  e.tx_timer=e.tx_time
+ end
+ 
+ local base_shoot_ply=e.shoot_ply
+ function e.shoot_ply()
+  if e.phase==0 then
+   base_shoot_ply()
+  elseif e.phase==1 then
+   local b=b_multi(
+    v_cpy(e.s_center),
+    v_cpy(v_zero),
+    t_enemy,
+    e.shot_life)
+   b.multi_cnt=8
+   b.multi_ang=0.1*time()
+   b.multi_rot_spd=1/15
+   b.multi_base_spd=1/15
+   b.multi_rad_spd=0.25
+   b.init()
+   add(bullets,b)
+  elseif e.phase==2 then
+   base_shoot_ply()
+   local b=b_multi(
+    v_cpy(e.s_center),
+    v_cpy(v_zero),
+    t_enemy,
+    e.shot_life)
+   b.multi_cnt=8
+   b.multi_ang=0.1*time()
+   b.multi_rot_spd=1/13
+   b.multi_base_spd=1/13
+   b.multi_rad_spd=0.4
+   b.init()
+   add(bullets,b)
+  end
+ end
+ 
+ local base_dmg=e.dmg
+ function e.dmg(n)
+  if e.starting_phase then
+   -- take no damage while
+   -- starting the next phase
+   return true
+  end
+
+  local prehp=e.health
+  if e.health>0.66*e.maxhp then
+   base_dmg(n)
+   if e.health<=0.66*e.maxhp then
+    e.next_phase()
+   end
+   return true
+  elseif e.health>0.33*e.maxhp then
+   base_dmg(n)
+   if e.health<=0.33*e.maxhp then
+    e.next_phase()
+   end
+   return true
+  end
+  return base_dmg(n)
  end
  
  return e

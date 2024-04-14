@@ -22,12 +22,11 @@ DONE add an enemy which hops around sporadically and quickly, but has low health
 DONE add multi/cluster bullet
 DONE add a slow-moving high-health enemy which tries to keep its distance from the player
 DONE fix bullet collisions with player
-TODO add a boss room which always spawns a specified enemy
-TODO add boss enemy with bullet hell pattern attacks
-TODO add shooting-induced knockback to player
-TODO add hitstop/hitsleep when taking damage
-TODO add hitstop/hitsleep when killing an enemy
-TODO make player render centered
+DONE add a boss room which always spawns a specified enemy
+DONE add boss enemy with bullet hell pattern attacks
+DONE add shooting-induced knockback to player
+DONE add hitstop/hitsleep when taking damage
+DONE add hitstop/hitsleep when killing an enemy
 TODO add variation to floor plans by randomly flipping them horizontally and vertically when generating the dungeon
 TODO add door which transitions to a new floor
 TODO update floor plan selection to run whenever the player enters a new floor
@@ -49,8 +48,8 @@ DONE add "dead-end" flag to rooms. Dead ends can be picked for use as special ro
 DONE add boss room, which has no walls and collision at 0,0,127,127
 DONE add boss-room-entering animation - dither fades to white, dither fades back with player on bottom third, boss on top third.
 DONE boss stage 1: shoots simple cluster projectiles towards player
-TODO boss stage 2: fires rotating multi clusters at her position, with a slowly increasing radius and a scaled rotation speed. the rotation speed is angular, not linear, so the actual linear speed scales at a rate of 2pi with respect to the radius, so we need to set it to radius/2pi
-TODO boss stage 3: both 1 and 2 at the same time, at slightly faster rates. boss moves a bit faster too.
+DONE boss stage 2: fires rotating multi clusters at her position, with a slowly increasing radius and a scaled rotation speed. the rotation speed is angular, not linear, so the actual linear speed scales at a rate of 2pi with respect to the radius, so we need to set it to radius/2pi
+DONE boss stage 3: both 1 and 2 at the same time, at slightly faster rates. boss moves a bit faster too.
 TODO funny explosion when boss dies :3
 
 ## biiiig stretch
