@@ -1209,45 +1209,6 @@ function b_seeker(pos,dir,team,lifetime,target,spd)
  return b
 end
 
-function b_seeker_update(self)
- if self.target then
-  -- target dir vector
-  local bcenter=center(self)
-  local pcenter=center(self.target)
-  local tdir=v_dir(bcenter,pcenter)
-  local dstsqr=v_dstsq(bcenter,pcenter)
-  
-  -- disable following/seeking
-  -- once its too close to the
-  -- target
-  if dstsqr<self.nofollow_dist*self.nofollow_dist then
-   self.target=nil
-  end
-  
-  local perp=v_perp(self.dir)
-  local d=v_dot(perp,tdir)
-  if d<0 then
-   self.dir=v_rot(self.dir,-self.turn_spd)
-  elseif d>0 then
-   self.dir=v_rot(self.dir,self.turn_spd)
-  end
-  
-  perp=v_cpy(self.dir)
-  local new_d=v_dot(perp,tdir)
-  
-  -- can this be replaced with sgn(d) != sgn(new_d)?
-  --if d>0 and new_d<0 or d<0 and new_d>0 then
-  if sgn(d) != sgn(new_d) then
-   self.dir=v_norm(tdir)
-  end
- end
-
- self.velocity=v_mul(self.dir,self.spd)
-
- b_move(self)
- return true
-end
-
 function b_collides(self, ent)
  -- we do an n-scale dist
  -- check before the real
