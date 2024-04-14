@@ -2,7 +2,7 @@ pico-8 cartridge // http://www.pico-8.com
 version 42
 __lua__
 -- game
-debug=false
+debug=true
 function ply_shoot()
  local bullet=nil
  if ply.form==1 then
@@ -12,12 +12,12 @@ function ply_shoot()
    t_player)
  else
   bullet=b_seeker(
-   v_cpy(ply.pos),
-   vector(ply.sh_x*8,ply.sh_y*8),
-   vector(ply.sh_x,ply.sh_y),
+   v_cpy(ply.c_center),
+   v_cpy(ply.sh_dir),
+   t_player,
+   nil, -- use default lifetime
    ply.near_enemy,
-   spd_seeker,
-   t_player)
+   spd_seeker)
  end
  add(bullets,bullet)
  return bullet
@@ -356,13 +356,12 @@ function _init()
  local plan=dungeon[floor_idx]
  floor=floor_from_plan(plan)
  room=floor[cell_x][cell_y]
- add(room.enemies,e_walker(vector(2,2)))
- --add(room.enemies,e_jumper(vector(2,2)))
- --add(room.enemies,e_heavy(vector(2,2)))
+ --add(room.enemies,e_walker(vec(20,20)))
+ add(room.enemies,e_jumper(vec(20,20)))
+ --add(room.enemies,e_heavy(vec(2,2)))
  
  ply.upd_coords()
  room.enemies[1].upd_coords()
- room.enemies[1].pos=vec(32,32)
  
  -- todo: do we really want
  --  to present this on startup?
@@ -469,9 +468,6 @@ function update_normal()
  end
  
  update_nearest_enemy()
- ply:upd_coords()
- ply:upd_spr()
- --update_ply_spr(key_bits,btn_bits)
  update_shoot() 
  update_bullets()
  update_enemies()
@@ -498,8 +494,14 @@ function update_normal()
  
  -- anti-cobble if diagonal
  if key_bits!=last_keys_bits and key_bits>4 then
-  ply.pos=v_add(v_flr(ply.pos),v_half)
+  ply.subpos=v_add(v_flr(ply.subpos),v_half)
  end
+ 
+ ply.upd_coords()
+ ply.upd_spr()
+ -- todo: do i need to update
+ --  coords post-move or
+ --  pre-move or both?
 
  -- get and clamp camera scroll
  cam_x,cam_y=v_unpck(ply.pos)
@@ -540,6 +542,7 @@ end
 
 function update_nearest_enemy()
  local min_dist=32767
+ ply.near_enemy=nil
  for e in all(room.enemies) do
   local d=v_dstsq(ply.pos, e.pos)
   if d<min_dist then
@@ -1003,21 +1006,31 @@ b_lut={1,2,0,2,1,2,0,2,1}
 b_hori_lut={true,true,false,false,false,false,false,true,true}
 b_vert_lut={false,false,false,false,false,true,true,true,false}
 
-function b_linear(pos,vel,team,life_time)
+function bullet(pos,
+                vel,
+                c_rad,
+                c_size,
+                s_pos,
+                s_size,
+                team,
+                lifetime,
+                s_lut)
+ -- c_off and c_size are used
+ -- to calcualte the center
  local b=entity(
-  3, --radius
+  c_rad,
   v_zero,
-  vec(8,8),
-  0,24,
-  vec(8,8),
-  b_lut,
+  c_size,
+  s_pos.x,s_pos.y,
+  s_size,
+  s_lut or b_lut,
   b_hori_lut,
   b_vert_lut)
  b.c_active=false
  b.pos=v_sub(v_add(v_flr(pos),v_half),vec(3.5,3.5))
  b.vel=vel
  b.team=team
- b.life_time=life_time
+ b.lifetime=lifetime
  b.rate_mult=1
  b.dmg_mult=1
  
@@ -1044,6 +1057,20 @@ function b_linear(pos,vel,team,life_time)
 	 b.flip_x=b.s_hori_lut[angle]
 	 b.flip_y=b.s_vert_lut[angle]
  end
+ 
+ return b
+end
+
+function b_linear(pos,vel,team,lifetime)
+ local b=bullet(
+  pos,
+  vel,
+  2,
+  vec(8,8),
+  vec(0,24),
+  vec(8,8),
+  team,
+  lifetime)
 
  return b
 end
@@ -1121,30 +1148,65 @@ function b_multi_draw(self)
  end
 end
 
-function b_seeker(tile,tile_frac,dir,target,spd,team,life_time)
- seeker={
-  tile=tile,
-  tile_frac=tile_frac,
-  velocity=v_cpy(v_zero),
-  base_spr=32,
-  spr_size=vector(8,8),
-  dir=dir,
-  spd=spd,
-  use_spr_lut=true,
-  life_time=life_time or 0,
-  -- radians turn spd per frame
-  turn_spd=0.01,
-  target=target,
-  update=b_seeker_update,
-  collides=b_collides,
-  draw=b_draw,
-  nofollow_dist=7.5,
-  radius=1,
-  team=team,
-  rate_mult=4,
-  dmg_mult=4,
- }
- return seeker
+function b_seeker(pos,dir,team,lifetime,target,spd)
+ local b=bullet(
+  pos,
+  v_cpy(v_zero),
+  2,
+  vec(8,8),
+  vec(0,16),
+  vec(8,8),
+  team,
+  lifetime)
+ 
+ -- overriding base values
+ b.rate_mult=4
+ b.dmg_mult=4
+ 
+ -- seeker stuff
+ b.nofollow_dist=7.5
+ b.turn_spd=0.01
+ b.dir=dir
+ b.target=target
+ b.spd=spd
+ 
+ b.update=function()
+	 if b.target then
+	  -- target dir vector
+	  local tdir=v_dir(b.c_center,b.target.c_center)
+	  local dstsqr=v_dstsq(b.c_center,b.target.c_center)
+	  
+	  -- disable following/seeking
+	  -- once its too close to the
+	  -- target
+	  if dstsqr<b.nofollow_dist*b.nofollow_dist then
+	   b.target=nil
+	  end
+	  
+	  local perp=v_perp(b.dir)
+	  local d=v_dot(perp,tdir)
+	  if d<0 then
+	   b.dir=v_rot(b.dir,-b.turn_spd)
+	  elseif d>0 then
+	   b.dir=v_rot(b.dir,b.turn_spd)
+	  end
+	  
+	  perp=v_cpy(b.dir)
+	  local new_d=v_dot(perp,tdir)
+	  
+	  -- can this be replaced with sgn(d) != sgn(new_d)?
+	  --if d>0 and new_d<0 or d<0 and new_d>0 then
+	  if sgn(d) != sgn(new_d) then
+	   b.dir=v_norm(tdir)
+	  end
+	 end
+	
+	 b.vel=v_mul(b.dir,b.spd)
+  b.move()
+	 return true
+ end
+ 
+ return b
 end
 
 function b_seeker_update(self)
@@ -1584,96 +1646,102 @@ shuffle(upgrades)
 -->8
 -- enemies
 
+function enemy(pos,
+               c_rad,
+               c_off,
+               c_size,
+               s_pos,
+               s_size,
+               health)
+ local e=entity(
+  c_rad,
+  c_off,
+  c_size,
+  s_pos.x,s_pos.y,
+  s_size,
+  {},
+  {true,false},
+  {})
+ e.pos=pos
+ e.health=health
+
+ e.dmg=function(n)
+  e.health-=n
+ 	return e.health>0
+ end
+
+ return e
+end
+
 function e_walker(pos)
- local self=entity(
+ local e=enemy(
+  pos,
   6,
   vec(1.5,1.5),
   vec(13,13),
-  56,16,
+  vec(56,16),
   vec(16,16),
-  -- s_lut
-  {},
-  -- s_hori_lut
-  {true,false},
-  -- s_vert_lut
-  {})
- self.pos=pos
+  50) -- health
 
- self.health=50
- self.spd=15/60
+ e.spd=0.25
  
- function self.update()
-  self.vel=v_mul(
-   v_dir(ply.pos, self.pos),
-   self.spd)
-	 self:move()
-	 if aabb(self,ply) then
+ function e.update()
+  e.vel=v_mul(v_dir(ply.pos,e.pos),e.spd)
+	 e.move()
+	 if e.aabb(ply) then
 	  dmg_ply()
 	 end
  end
-
- self.dmg=e_dmg_func(self)
  
- return self
+ return e
 end
 
-function e_jumper(tile)
- local self={
-  tile=tile,
-  tile_frac=v_cpy(v_zero),
-  velocity=v_cpy(v_zero),
-  -- drawing
+function e_jumper(pos)
+ local e=enemy(
+  pos,
+  2,
+  vec(2,2),
+  vec(4,4),
   -- spr can be either 5 or 6
-  sx=8*(5+flr(rnd())),sy=0,
-  spr_size=vector(8,8),
-  -- collision
-  radius=2,
-  ox=2,oy=2,
-  w=4,h=4,
+  vec(8*(5+flr(rnd())),0),
+  vec(8,8),
+  30) -- health
 
-  health=30,
-
-  dir=v_cpy(v_zero),
-  jump_spd=128/60,
-  jump_damp=0.96,
-  jump_timer=50,
-  jump_time=50,
-  jump_ply_chance=0.25,
-  jump_perp_chance=0.5,
- }
+ e.dir=v_cpy(v_zero)
+ e.jump_spd=128/60
+ e.jump_damp=0.96
+ e.jump_timer=50
+ e.jump_time=50
+ e.jump_ply_chance=0.25
+ e.jump_perp_chance=0.5
  
- function self.update()
-  self.jump_timer-=1
-  if self.jump_timer==0 then
-   local pcenter=center(ply)
-   local ecenter=center(self)
+ function e.update()
+  e.jump_timer-=1
+  if e.jump_timer==0 then
    local choice=rnd()
-   local near_ply=check_vdst(ecenter,pcenter)
-   if choice < self.jump_ply_chance and
+   local near_ply=check_vdst(e.c_center,ply.c_center)
+   if choice < e.jump_ply_chance and
       near_ply then
-    self.dir=v_dir(ecenter,pcenter)
-   elseif choice < self.jump_perp_chance and
+    e.dir=v_dir(e.c_center,ply.c_center)
+   elseif choice < e.jump_perp_chance and
       near_ply then
-    local dir=v_perp(v_dir(ecenter,pcenter))
+    local dir=v_perp(v_dir(e.c_center,ply.c_center))
    else
     -- todo: move away from walls
     --  on average
-    self.dir=v_rnd()
+    e.dir=v_rnd()
 	  end
-   self.velocity=v_mul(self.dir,self.jump_spd)
-   self.jump_timer=self.jump_time
+   e.vel=v_mul(e.dir,e.jump_spd)
+   e.jump_timer=e.jump_time
   end
-	 move_ent(self)
-  self.velocity=v_mul(self.velocity,self.jump_damp)
-	 if aabb(self,ply) then
+	 e.move()
+  e.vel=v_mul(e.vel,e.jump_damp)
+	 if e.aabb(ply) then
 	  dmg_ply()
 	 end
  end
  
- self.draw=e_draw_func(self)
- self.dmg=e_dmg_func(self)
- 
- return self
+ return e
 end
 
 function e_heavy(tile)
