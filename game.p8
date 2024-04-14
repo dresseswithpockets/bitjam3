@@ -642,6 +642,7 @@ function update_bullets()
       end
       if not e.dmg(dmg) then
        deli(room.enemies,ei)
+       hitsleep=15
       end
       deli(bullets,i)
      end

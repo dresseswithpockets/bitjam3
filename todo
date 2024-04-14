@@ -26,7 +26,7 @@ DONE add a boss room which always spawns a specified enemy
 DONE add boss enemy with bullet hell pattern attacks
 DONE add shooting-induced knockback to player
 DONE add hitstop/hitsleep when taking damage
-TODO add hitstop/hitsleep when killing an enemy
+DONE add hitstop/hitsleep when killing an enemy
 TODO add variation to floor plans by randomly flipping them horizontally and vertically when generating the dungeon
 TODO add door which transitions to a new floor
 TODO update floor plan selection to run whenever the player enters a new floor
