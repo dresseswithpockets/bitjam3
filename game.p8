@@ -2,18 +2,17 @@ pico-8 cartridge // http://www.pico-8.com
 version 42
 __lua__
 -- game
-
+debug=false
 function ply_shoot()
  local bullet=nil
  if ply.form==1 then
   bullet=b_linear(
-   v_cpy(ply.tile),
-   vector(ply.sh_x*8,ply.sh_y*8),
-   vector(ply.sh_x,ply.sh_y),
+   v_cpy(ply.c_center),
+   v_mul(ply.sh_dir,spd_bullet),
    t_player)
  else
   bullet=b_seeker(
-   v_cpy(ply.tile),
+   v_cpy(ply.pos),
    vector(ply.sh_x*8,ply.sh_y*8),
    vector(ply.sh_x,ply.sh_y),
    ply.near_enemy,
@@ -24,82 +23,9 @@ function ply_shoot()
  return bullet
 end
 
-function move_ent(ent)
- ent.tile_frac=v_add(ent.tile_frac, ent.velocity)
- --
- -- horizontal
- local col_left,col_right=false,false
- if room.boss then
-  if ent.tile.x==15 and ent.tile_frac.x>0 then
-   ent.velocity.x=0
-	  ent.tile_frac.x=0
-	  col_right=true
-	 end
-	 if ent.tile.x==0 and ent.tile_frac.x<0 then
-   ent.velocity.x=0
-	  ent.tile_frac.x=0
-	  col_left=true
-	 end
-	else
-  local cx,cy=room.t.coord(ent.tile.x+1,ent.tile.y)
-	 if fget(mget(cx,cy),7) and ent.tile_frac.x>0 then
-	  ent.velocity.x=0
-	  ent.tile_frac.x=0
-	  col_right=true
-	 end
-	 local cx,cy=room.t.coord(ent.tile.x-1,ent.tile.y)
-	 if fget(mget(cx,cy),7) and ent.tile_frac.x<0 then
-	  ent.velocity.x=0
-	  ent.tile_frac.x=0
-	  col_left=true
-	 end
-	end
- while ent.tile_frac.x>8 do
-  ent.tile_frac.x-=8
-  ent.tile.x+=1
- end
- while ent.tile_frac.x<0 do
-  ent.tile_frac.x+=8
-  ent.tile.x-=1
- end
- 
- --
- -- vertical
- local col_up,col_down=false,false
- if room.boss then
-  if ent.tile.y==15 and ent.tile_frac.y>0 then
-   ent.velocity.y=0
-	  ent.tile_frac.y=0
-	  col_down=true
-	 end
-	 if ent.tile.y==0 and ent.tile_frac.y<0 then
-	  ent.velocity.y=0
-	  ent.tile_frac.y=0
-	  col_up=true
-	 end
-	else
-	 local cx,cy=room.t.coord(ent.tile.x,ent.tile.y+1)
-	 if fget(mget(cx,cy),7) and ent.tile_frac.y>0 then
-	  ent.velocity.y=0
-	  ent.tile_frac.y=0
-	  col_down=true
-	 end
-	 local cx,cy=room.t.coord(ent.tile.x,ent.tile.y-1)
-	 if fget(mget(cx,cy),7) and ent.tile_frac.y<0 then
-	  ent.velocity.y=0
-	  ent.tile_frac.y=0
-	  col_up=true
-	 end
-	end
- while ent.tile_frac.y>8 do
-  ent.tile_frac.y-=8
-  ent.tile.y+=1
- end
- while ent.tile_frac.y<0 do
-  ent.tile_frac.y+=8
-  ent.tile.y-=1
- end
- return col_left,col_right,col_up,col_down
+function has_col(x,y)
+ x,y=room.t.coord(x\8,y\8)
+ return fget(mget(x,y),7)
 end
 
 function start_boss_enter1()
@@ -154,7 +80,7 @@ end
 
 function goto_first_room_dir(dir)
  for _,l in ipairs(room.links) do
-  local ppos=topleft(ply)
+  local ppos=ply.pos
   if dir==d_up or dir==d_down then 
    if l.dir==dir and ppos.x>=l.door.x1-2 and ppos.x<=l.door.x2+2 then
     goto_room(l.trx,l.try,l.tcx,l.tcy,l.dir)
@@ -183,6 +109,179 @@ function present_lvlup()
  }
 end
 
+function entity(c_rad,
+                c_off,
+                c_size,
+                s_x,s_y,
+                s_size,
+                s_lut,
+                s_hori_lut,
+                s_vert_lut)
+ -- entities have:
+ --  velocity
+ --  collision info
+ --  drawing info
+ local ent={
+  -- top left position
+  pos=vec(0,0),
+  -- subpixel pos
+  subpos=vec(0,0),
+  -- velocity
+  vel=vec(0,0),
+  
+  -- collision
+  -- 
+  c_active=true,
+  -- bullet collision radius
+  c_rad=c_rad or 1,
+  -- aabb's offset from pos
+  c_off=c_off or vec(0,0),
+  -- aabb's size
+  c_size=c_size or vec(0,0),
+  
+  -- drawing/sprites
+  -- 
+  -- spr sheet pos
+  s_x=s_x or 0,
+  s_y=s_y or 0,
+  -- dir-to-spr lut
+  s_dir_idx=4, -- start looking down
+  s_lut=s_lut or {},
+  -- dir-to-flip-luts
+  s_hori_lut=s_hori_lut or {},
+  s_vert_lut=s_vert_lut or {},
+  -- spr size, also used for
+  -- map collision
+  s_size=s_size or vec(8,8),
+ }
+ 
+ -- optional:
+ -- s_dir_idx - directional index from 1 to 8
+ -- s_lut - dir-to-spr lut, overrides s_x,s_y
+ 
+ -- aabb/rect overlap test
+ ent.aabb=function(other)
+	 local a1,a2=ent.c_p1,ent.c_p2
+	 local b1,b2=other.c_p1,other.c_p2
+	 return a1.x<b2.x and a2.x>b1.x and
+	  a1.y<b2.y and a2.y>b1.y
+	end
+	
+	-- circle overlap test
+	ent.circ=function(o)
+	 local min_d=ent.c_rad+o.c_rad
+	 local d=v_dstsq(ent.c_center,o.c_center)
+	 return ent.near(o) and d<(min_d*min_d)
+	end
+	
+	ent.near=function(o,d)
+	 d=d or 127
+	 return abs(o.pos.x-ent.pos.x)<=d and
+	  abs(o.pos.y-ent.pos.y)<=d
+	end
+ 
+ ent.upd_coords=function()
+  ent.c_p1=v_add(ent.pos,ent.c_off)
+  ent.c_p2=v_add(ent.c_p1,ent.c_size)
+  ent.c_center=v_lerp(ent.c_p1,ent.c_p2,0.5)
+  ent.s_center=v_add(ent.pos,v_div(ent.s_size,2))
+ end
+ 
+ ent.upd_spr=function()
+  local s=ent.s_lut[ent.s_dir_idx]
+  if s==nil then
+	  ent.use_sx=ent.s_x
+	  ent.use_sy=ent.s_y
+	  return
+  end
+  ent.use_sx=8*(s%16)
+  ent.use_sy=8*(s\16)
+  ent.flip_x=ent.s_hori_lut[ent.s_dir_idx]
+  ent.flip_y=ent.s_vert_lut[ent.s_dir_idx]
+ end
+
+ ent.move=function()
+	 ent.subpos=v_add(ent.subpos,ent.vel)
+	 
+	 local left=ent.pos.x+ent.c_off.x
+	 local right=left+ent.c_size.x
+	 local top=ent.pos.y+ent.c_off.y
+	 local bottom=top+ent.c_size.y
+	 
+	 -- horizontal
+	 local col_left,col_right=false,false
+	 while ent.subpos.x>1 do
+	  if ent.c_active and has_col(right+1,ent.c_center.y) then
+	   ent.subpos.x%=1
+	   ent.vel.x=0
+	   col_right=true
+	  else
+		  ent.subpos.x-=1
+		  ent.pos.x+=1
+		 end
+	 end
+	 while ent.subpos.x<-1 do
+	  if ent.c_active and has_col(left-1,ent.c_center.y) then
+	   ent.subpos.x%=1
+	   ent.vel.x=0
+	   col_left=true
+	  else
+		  ent.subpos.x+=1
+		  ent.pos.x-=1
+		 end
+	 end
+	 
+	 -- vertical
+	 local col_up,col_down=false,false
+	 while ent.subpos.y>1 do
+	  if ent.c_active and has_col(ent.c_center.x,bottom+1) then
+	   ent.subpos.y%=1
+	   ent.vel.y=0
+	   col_down=true
+	  else
+		  ent.subpos.y-=1
+		  ent.pos.y+=1
+		 end
+	 end
+	 while ent.subpos.y<-1 do
+	  if ent.c_active and has_col(ent.c_center.x,top-1) then
+	   ent.subpos.y%=1
+	   ent.vel.y=0
+	   col_up=true
+	  else
+		  ent.subpos.y+=1
+		  ent.pos.y-=1
+		 end
+	 end
+	end
+ 
+ ent.draw=function()
+  sspr(
+   ent.use_sx,ent.use_sy,
+   ent.s_size.x,ent.s_size.y,
+   ent.pos.x,ent.pos.y,
+   ent.s_size.x,ent.s_size.y,
+   ent.flip_x,ent.flip_y)
+  if debug then
+   -- draw top left, bottom right
+   pset(ent.pos.x,ent.pos.y,11)
+   pset(
+   	ent.pos.x+ent.s_size.x,
+   	ent.pos.y+ent.s_size.y,
+   	11)
+   -- draw aabb
+   rect(
+    ent.c_p1.x,ent.c_p1.y,
+    ent.c_p2.x,ent.c_p2.y,
+    12)
+   -- draw radius
+   circ(ent.c_center.x,ent.c_center.y,ent.c_rad)
+  end
+ end
+ 
+ return ent
+end
+
 function _init()
  poke(0x5f2d,0x1)
  palt(6, true)
@@ -200,38 +299,26 @@ function _init()
  show_lvlup_menu=false
  
  -- player stuff
- ply_vert_spr=1
- ply_hori_spr=2
- ply={
-  -- tile coords
-  tile=vector(7,7),
-  -- tile fraction [0, 8]
-  tile_frac=vector(0,0),
-  -- sprite width/height
-  spr_size=vector(8,8),
-  -- velocity
-  velocity=vector(0,0),
-  -- shoot dir
-  sh_x=0,sh_y=-1,
-  -- collision
-  radius=1,
-  ox=0.5,oy=0.5,
-  w=7,h=7,
-  
-  near_enemy=nil,
-  
-  -- transformations
-  form=1,
-  trans=false,
-  trans_timer=0,
-  
-  health=3,
-  iframes=0,
-  
-  spr=1,
-  flip_y=false,flip_x=false,
- }
- ply_spd=75/60 -- px/sec
+ ply=entity(
+  1,
+  vec(3,3),
+  vec(8,10),
+  0,0,
+  vec(16,16),
+  -- s_lut
+  {11,11,13,9,11,11,11,11},
+  -- s_hori_lut
+  {false,true,false,false,false,true,true},
+  -- s_vert_lut
+  {})
+ ply.pos=vec(7*8,7*8)
+ ply.health=3
+ ply.iframes=0
+ ply.near_enemy=nil
+ ply.form=1
+ ply.trans=false
+ ply.trans_timer=0
+ ply.spd=75/60 -- px/sec
  ply_spd_shoot_mult=0.85
  shoot_time=15 -- frame delay
  shoot_timer=0
@@ -269,9 +356,13 @@ function _init()
  local plan=dungeon[floor_idx]
  floor=floor_from_plan(plan)
  room=floor[cell_x][cell_y]
- --add(room.enemies,e_walker(vector(2,2)))
+ add(room.enemies,e_walker(vector(2,2)))
  --add(room.enemies,e_jumper(vector(2,2)))
- add(room.enemies,e_heavy(vector(2,2)))
+ --add(room.enemies,e_heavy(vector(2,2)))
+ 
+ ply.upd_coords()
+ room.enemies[1].upd_coords()
+ room.enemies[1].pos=vec(32,32)
  
  -- todo: do we really want
  --  to present this on startup?
@@ -338,11 +429,10 @@ function update_normal()
  local keys_value=keys()
  local key_bits=btn_lut[keys_value&0b1111]
  local btn_bits=btn_lut[btn()&0b1111]
- ply.sh_x=dx_lut[btn_bits]
- ply.sh_y=dy_lut[btn_bits]
- ply.shoot=ply.sh_x!=0 or ply.sh_y!=0
+ ply.sh_dir=vec(dx_lut[btn_bits],dy_lut[btn_bits])
+ ply.shoot=ply.sh_dir.x!=0 or ply.sh_dir.y!=0
 
- local use_spd=ply_spd
+ local use_spd=ply.spd
  if ply.shoot then
   use_spd*=ply_spd_shoot_mult
  end
@@ -366,12 +456,22 @@ function update_normal()
  
  -- updating player spd from
  -- player input direction
- ply.velocity=vector(
+ ply.vel=vector(
   dx_lut[key_bits]*use_spd,
   dy_lut[key_bits]*use_spd)
  
+ if key_bits>0 then
+  ply.s_dir_idx=key_bits
+ end
+ 
+ if ply.shoot then
+  ply.s_dir_idx=btn_bits
+ end
+ 
  update_nearest_enemy()
- update_ply_spr(key_bits,btn_bits)
+ ply:upd_coords()
+ ply:upd_spr()
+ --update_ply_spr(key_bits,btn_bits)
  update_shoot() 
  update_bullets()
  update_enemies()
@@ -381,7 +481,7 @@ function update_normal()
  end
  
  -- updating player pos from vel
- cleft,cright,cup,cdown=move_ent(ply)
+ cleft,cright,cup,cdown=ply:move()
  
  -- test if player touching doors
  if not room.boss then
@@ -398,11 +498,11 @@ function update_normal()
  
  -- anti-cobble if diagonal
  if key_bits!=last_keys_bits and key_bits>4 then
-  ply.tile_frac=v_add(v_flr(ply.tile_frac),v_half)
+  ply.pos=v_add(v_flr(ply.pos),v_half)
  end
 
  -- get and clamp camera scroll
- cam_x,cam_y=v_unpck(topleft(ply))
+ cam_x,cam_y=v_unpck(ply.pos)
  clamp_scroll_to_room()
  
  last_keys_bits=key_bits
@@ -440,10 +540,8 @@ end
 
 function update_nearest_enemy()
  local min_dist=32767
- local pcenter=center(ply)
  for e in all(room.enemies) do
-  local ecenter=center(e)
-  local d=v_dstsq(pcenter, ecenter)
+  local d=v_dstsq(ply.pos, e.pos)
   if d<min_dist then
    min_dist=d
    ply.near_enemy=e
@@ -479,8 +577,10 @@ end
 
 function update_bullets()
  for i=#bullets,1,-1 do
-  local bullet=bullets[i]
-  local bx,by=v_unpck(center(bullet))
+  local bul=bullets[i]
+  bul:upd_coords()
+  bul:upd_spr()
+  local bx,by=v_unpck(bul.s_center)
   if bx<0 or
     bx>256 or
     by<0 or
@@ -491,13 +591,13 @@ function update_bullets()
    -- update bullets & handle
    -- collisions with player &
    -- other entities
-   if not bullet:update() then
+   if not bul:update() then
     deli(bullets,i)
-   elseif bullet.team==t_player then
+   elseif bul.team==t_player then
     for ei=#room.enemies,1,-1 do
      local e=room.enemies[ei]
-     if bullet:collides(e) then
-	     local dmg=ply_dmg*bullet.dmg_mult
+     if bul.circ(e) then
+	     local dmg=ply_dmg*bul.dmg_mult
       if trans_quad_timer>0 then
        dmg*=4
       end
@@ -507,7 +607,7 @@ function update_bullets()
       deli(bullets,i)
      end
     end
-   elseif bullet:collides(ply) then
+   elseif bul.circ(ply) then
     dmg_ply()
     deli(bullets,i)
    end
@@ -518,6 +618,8 @@ end
 function update_enemies()
  for i=#room.enemies,1,-1 do
   local e=room.enemies[i]
+  e.upd_coords()
+  e.upd_spr()
   e.update()
  end
 end
@@ -537,7 +639,7 @@ function _draw()
   cls()
   draw_boss_room()
   draw_enemies()
-  draw_player()
+  ply:draw()
   draw_ply_hp()
   poke(0x5f34, 0x2)
   local pcenter=center(ply)
@@ -563,7 +665,7 @@ function draw_normal()
   draw_doors()
  end
  if (ply.iframes%10)<7 then
-  draw_player()
+  ply:draw()
  end
  draw_bullets()
  draw_enemies()
@@ -583,29 +685,16 @@ function draw_boss_room()
  rect(0,0,127,127,7)
 end
 
-function draw_player()
- local ps=topleft(ply)
- spr(
-  ply.spr,
-  ps.x,ps.y,1,1,
-  ply.flip_x,ply.flip_y)
- local r1,r2=ent_rect(ply)
- rect(r1.x,r1.y,r2.x,r2.y,9)
- local pc=center(ply)
- pset(pc.x,pc.y,8)
- circ(pc.x,pc.y,ply.radius,11)
-end
-
 function draw_bullets()
- for _,bullet in ipairs(bullets) do
-  bullet:draw()
+ for _,b in ipairs(bullets) do
+  b:draw()
  end
 end
 
 function draw_enemies()
  for i=#room.enemies,1,-1 do
   local e=room.enemies[i]
-  e.draw()
+  e:draw()
  end
 end
 
@@ -833,12 +922,6 @@ room_types={
 -->8
 -- ent & vectors util
 
--- before: 2088
--- after: 2069
-ply_spr_lut={2,2,1,1,2,2,2,2}
-ply_hori_lut={false,true,false,false,false,true,true}
-ply_vert_lut={[4]=true}
-
 function dot(x1,y1,x2,y2)
  return x1*x2+y1*y2
 end
@@ -871,14 +954,20 @@ function ent_rect(ent)
 end
 
 function aabb(a,b)
- local a1,a2=ent_rect(a)
- local b1,b2=ent_rect(b)
+ local a1,a2=a.c_p1,a.c_p2
+ local b1,b2=b.c_p1,b.c_p2
  return a1.x<b2.x and a2.x>b1.x and
   a1.y<b2.y and a2.y>b1.y
 end
 
 function topleft(ent)
- return vector(ent.tile.x*8+ent.tile_frac.x,ent.tile.y*8+ent.tile_frac.y)
+ local v=vector(
+  ent.tile.x*8+ent.tile_frac.x,
+  ent.tile.y*8+ent.tile_frac.y)
+ if ent.spr_off then
+  v=v_add(v,ent.spr_off)
+ end
+ return v
 end
 
 function center(ent)
@@ -910,23 +999,53 @@ end
 t_player=0
 t_enemy=1
 
-function b_linear(tile,tile_frac,velocity,team,life_time)
- return {
-  tile=tile,
-  tile_frac=v_add(v_flr(tile_frac),v_half),
-  velocity=velocity,
-  base_spr=48,
-  spr_size=vector(8,8),
-  update=b_move,
-  collides=b_collides,
-  draw=b_draw,
-  radius=1,
-  team=team,
-  rate_mult=1,
-  dmg_mult=1,
-  life_time=life_time or 0,
-  use_spr_lut=true,
- }
+b_lut={1,2,0,2,1,2,0,2,1}
+b_hori_lut={true,true,false,false,false,false,false,true,true}
+b_vert_lut={false,false,false,false,false,true,true,true,false}
+
+function b_linear(pos,vel,team,life_time)
+ local b=entity(
+  3, --radius
+  v_zero,
+  vec(8,8),
+  0,24,
+  vec(8,8),
+  b_lut,
+  b_hori_lut,
+  b_vert_lut)
+ b.c_active=false
+ b.pos=v_sub(v_add(v_flr(pos),v_half),vec(3.5,3.5))
+ b.vel=vel
+ b.team=team
+ b.life_time=life_time
+ b.rate_mult=1
+ b.dmg_mult=1
+ 
+ b.update=function()
+  b.move()
+  return true
+ end
+
+ b.upd_spr=function()
+	 local angle=v_ang(b.vel)
+	 angle+=0.0625 -- [0.0625,1.0625)
+	 angle=flr(angle*8)+1 -- [1,9]
+
+	 local s=b.s_lut[angle]
+	 if s==nil then
+	  b.use_sx=ent.s_x
+	  b.use_sy=ent.s_y
+	  return
+	 end
+	 
+	 local sx,sy=8*(s%16),8*(s\16)
+	 b.use_sx=b.s_x+sx
+	 b.use_sy=b.s_y+sy
+	 b.flip_x=b.s_hori_lut[angle]
+	 b.flip_y=b.s_vert_lut[angle]
+ end
+
+ return b
 end
 
 function b_multi(tile,tile_frac,velocity,team,life_time)
@@ -1116,18 +1235,6 @@ function b_move(self)
  end
  return true
 end
-
-bul_spr_lut={
- {1,true,false}, -- 0
- {2,true,false}, -- 1
- {0,false,false},-- 2
- {2,false,false},-- 3
- {1,false,false},-- 4
- {2,false,true}, -- 5
- {0,false,true},-- 6
- {2,true,true},-- 7
- {1,true,false}, -- 8
-}
 
 function b_draw(self)
  local angle=v_ang(self.velocity)
@@ -1418,7 +1525,7 @@ function u_rapid_fire_exec()
  -- todo: make the shoot speed
  --  weapon-specific
  -- decrease ply move speed
- ply_spd*=0.8
+ ply.spd*=0.8
 end
 
 u_quad_dmg={
@@ -1477,32 +1584,34 @@ shuffle(upgrades)
 -->8
 -- enemies
 
-function e_walker(tile)
- local self={
-  tile=tile,
-  tile_frac=v_cpy(v_zero),
-  velocity=v_cpy(v_zero),
-  -- drawing
-  sx=56,sy=16,
-  spr_size=vector(16,16),
-  -- collision
-  radius=13,
-  ox=1.5,oy=1.5,
-  w=13,h=13,
-  
-  health=50,
-  spd=15/60,
- }
+function e_walker(pos)
+ local self=entity(
+  6,
+  vec(1.5,1.5),
+  vec(13,13),
+  56,16,
+  vec(16,16),
+  -- s_lut
+  {},
+  -- s_hori_lut
+  {true,false},
+  -- s_vert_lut
+  {})
+ self.pos=pos
+
+ self.health=50
+ self.spd=15/60
  
  function self.update()
-  self.velocity=v_mul(v_dir(topleft(self), topleft(ply)),self.spd)
-	 move_ent(self)
+  self.vel=v_mul(
+   v_dir(ply.pos, self.pos),
+   self.spd)
+	 self:move()
 	 if aabb(self,ply) then
 	  dmg_ply()
 	 end
  end
 
- self.draw=e_draw_func(self)
  self.dmg=e_dmg_func(self)
  
  return self
@@ -1806,6 +1915,7 @@ bosses={
 -- modified by snale
 
 function vector(x,y) return {x=x or 0,y=y or 0} end
+vec=vector
 
 function v_polar(l,a) return vector(l*sin(a),l*cos(a)) end
 function v_rnd()      return v_polar(1,rnd())          end
