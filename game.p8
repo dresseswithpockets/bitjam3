@@ -33,6 +33,7 @@ end
 function start_boss_enter1()
  room_state=r_boss_enter1
  room_state_timer=room_boss_fade_time
+ sfx_door_enter.play()
 end
 
 function start_boss_enter2()
@@ -43,6 +44,7 @@ function start_boss_enter2()
 	ply.upd_coords()
  room_state=r_boss_enter2
  room_state_timer=room_boss_fade_time
+ sfx_door_exit.play()
 end
 
 function goto_room(rx,ry,tcx,tcy,dir)
@@ -578,7 +580,7 @@ function update_lvlup_menu()
  if btnp(🅾️) then
   lvlup_choices[menu_idx].exec()
   show_lvlup_menu=false
-  --todo: sfx_menu_sel.play()
+  sfx_menu_sel.play()
  end
 end
 
