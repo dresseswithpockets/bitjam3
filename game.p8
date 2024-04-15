@@ -10,6 +10,7 @@ function ply_shoot()
    v_cpy(ply.c_center),
    v_mul(ply.sh_dir,spd_bullet),
    t_player)
+  sfx_shoot.play()
  else
   bullet=b_seeker(
    v_cpy(ply.c_center),
@@ -18,6 +19,7 @@ function ply_shoot()
    nil, -- use default lifetime
    ply.near_enemy,
    spd_seeker)
+  sfx_shoot_seek.play()
  end
  -- knockback
  ply.knock=v_mul(v_neg(ply.sh_dir),2)
@@ -966,57 +968,9 @@ room_types={
 
 -->8
 -- ent & vectors util
-
-function dot(x1,y1,x2,y2)
- return x1*x2+y1*y2
-end
-
-function sqrlen(x,y)
- return x*x+y*y
-end
-
-function sqrdist(x1,y1,x2,y2)
- return sqrlen(x2-x1,y2-y1)
-end
-
 function check_vdst(a,b,d)
  d=d or 127
  return abs(a.x-b.x)<=d and abs(a.y-b.y)<=d
-end
-
-function check_dist(x1,y1,x2,y2,a)
- -- 179 is the smallest amount we
- -- can square (e.g. in a sqrdist check)
- -- before overflowing in p8
- a=a or 127
- return abs(x2-x1)<=a and abs(y2-y1)<=a
-end
-
-function ent_rect(ent)
- local a1=v_add(topleft(ent),vector(ent.ox,ent.oy))
- local a2=v_add(a1,vector(ent.w,ent.h))
- return a1,a2
-end
-
-function aabb(a,b)
- local a1,a2=a.c_p1,a.c_p2
- local b1,b2=b.c_p1,b.c_p2
- return a1.x<b2.x and a2.x>b1.x and
-  a1.y<b2.y and a2.y>b1.y
-end
-
-function topleft(ent)
- local v=vector(
-  ent.pos.x,
-  ent.pos.y)
- if ent.spr_off then
-  v=v_add(v,ent.spr_off)
- end
- return v
-end
-
-function center(ent)
- return v_add(topleft(ent),vector(ent.spr_size.x/2,ent.spr_size.y/2))
 end
 
 function clamp_scroll_to_room()
@@ -2092,10 +2046,12 @@ function music_sfx(pat)
 end
 
 sfx_menu_hi=single_sfx(0)
-sfx_menu_sel=music_sfx(0)
-sfx_menu_back=single_sfx(3)
-sfx_door_enter=single_sfx(7)
-sfx_door_exit=single_sfx(8)
+sfx_menu_sel=single_sfx(1)
+sfx_menu_back=single_sfx(2)
+sfx_door_enter=single_sfx(3)
+sfx_door_exit=single_sfx(4)
+sfx_shoot=single_sfx(5)
+sfx_shoot_seek=single_sfx(6)
 
 __gfx__
 66666666666776666666777666777666677667766666666676666667667666666666676666666666666666666666666666666666666666666666666666666666
