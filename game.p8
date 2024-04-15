@@ -364,6 +364,9 @@ function _init()
  -- hitsleep & shake
  hitsleep=0
  
+ -- sfx
+ 
+ 
  dungeon={
   rnd(floor_plans),
   rnd(floor_plans),
@@ -548,6 +551,7 @@ end
 function update_dead()
  if btnp(➡️) or btnp(⬅️) then
   menu_idx=menu_idx==1 and 2 or 1
+  sfx_menu_hi.play()
  end
  
  if menu_noquit_counter>0 then
@@ -556,21 +560,25 @@ function update_dead()
  
  if btnp(🅾️) and menu_idx==2 then
   menu_noquit_counter=150
+  sfx_menu_back.play()
  end
  
  if btnp(🅾️) and menu_idx==1 then
   _init()
+  sfx_menu_sel.play()
  end
 end
 
 function update_lvlup_menu()
  if btnp(⬆️) or btnp(⬇️) then
   menu_idx=menu_idx==1 and 2 or 1
+  sfx_menu_hi.play()
  end
  
  if btnp(🅾️) then
   lvlup_choices[menu_idx].exec()
   show_lvlup_menu=false
+  --todo: sfx_menu_sel.play()
  end
 end
 
@@ -2060,6 +2068,33 @@ v_one =vector(1,1)
 v_half=vector(0.5,0.5)
 
 v_cntr=vector(64,64)
+-->8
+-- sfx
+
+function single_sfx(id)
+ return {
+  play=function()
+   sfx(id)
+  end
+ }
+end
+
+function music_sfx(pat)
+ return {
+  play=function()
+   -- music sfx are always
+   -- played on channels 2 and 3
+   music(pat,0,0b1100)
+  end
+ }
+end
+
+sfx_menu_hi=single_sfx(0)
+sfx_menu_sel=music_sfx(0)
+sfx_menu_back=single_sfx(3)
+sfx_door_enter=single_sfx(7)
+sfx_door_exit=single_sfx(8)
+
 __gfx__
 66666666666776666666777666777666677667766666666676666667667666666666676666666666666666666666666666666666666666666666666666666666
 66666666667007666667000767000766700770076776677667766776667760666606776666666777776666666666667777666666666667777766666667666676
