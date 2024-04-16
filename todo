@@ -49,6 +49,9 @@ TODO refactor multi bullets to parent child bullets at orbit points
 TODO fix bug where killing the boss in 1 shot doesnt spawn door
 TODO integrate door exit sfx
 TODO integrate player walking sfx
+TODO dont show death screen until after ply damage hitsleep is over
+TODO integrate music loop
+TODO stop music loop when player dies, before hitsleep; after hitsleep play death jingle
 
 ## boss 1 design
 DONE add "dead-end" flag to rooms. Dead ends can be picked for use as special rooms (e.g. Boss, Shop, Item, Upgrade, etc)

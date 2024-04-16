@@ -1940,6 +1940,12 @@ sfx_ply_walk=single_sfx(8)
 sfx_ply_dmg=hitstun_sfx(
  single_sfx(5,2),
  single_sfx(7))
+
+-- todo:
+--music_loop1=track(0)
+--music_death_boss=track(1)
+--music_death_norm=track(2)
+
 -->8
 -- states: boss room
 
@@ -2314,5 +2320,6 @@ __sfx__
 __music__
 03 0a0b0c44
 04 100e0f44
+04 0d0e0f44
 03 11121344
 
