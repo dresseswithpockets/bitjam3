@@ -103,11 +103,13 @@ end
 function goto_room(rx,ry,tcx,tcy,dir)
  sfx_door_enter.play()
  next_room=floor[rx][ry]
+ bullets={}
  if next_room.boss then
   state_boss_room_enter()
   return
  end
  room=next_room
+ room.locked=true
  local ix=tcx*16*8
  local iy=tcy*16*8
  local cx,cy,rx,ry=0,0,0,0
@@ -369,8 +371,7 @@ function setup_next_floor()
  floor=floor_from_plan(plan)
  cell_x,cell_y=3,3
  room=floor[cell_x][cell_y]
- ?room.enemies[1].health
- --assert(false)
+ room.locked=true
  boss=nil
 end
 
@@ -571,14 +572,16 @@ function update_normal()
  
  -- test if player touching doors
  if not room.boss then
-	 if cleft then
-	  goto_first_room_dir(d_left)
-	 elseif cright then
-	  goto_first_room_dir(d_right)
-	 elseif cup then
-	  goto_first_room_dir(d_up)
-	 elseif cdown then
-	  goto_first_room_dir(d_down)
+  if not room.locked then
+		 if cleft then
+		  goto_first_room_dir(d_left)
+		 elseif cright then
+		  goto_first_room_dir(d_right)
+		 elseif cup then
+		  goto_first_room_dir(d_up)
+		 elseif cdown then
+		  goto_first_room_dir(d_down)
+		 end
 	 end
  elseif boss.health<0 and boss.circ(ply) then
   -- if we're in boss room and
@@ -707,6 +710,9 @@ function update_bullets()
       if not e.dmg(dmg) then
        deli(room.enemies,ei)
        hitsleep=15
+       if #room.enemies==0 then
+        room.locked=false
+       end
       end
       deli(bullets,i)
      end
@@ -1325,10 +1331,10 @@ fp_test={
 }
 
 floor_plans={
- --fp_1,
- --fp_2,
+ fp_1,
+ fp_2,
  --fp_3_str,
- fp_test,
+ --fp_test,
 }
 
 atofp_params={"dcx","dcy","dir","trx","try","tcx","tcy"}

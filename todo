@@ -39,19 +39,23 @@ DONE use boss circfill transition for floor transitions
 DONE replace boss circfill transition with fadeout transition
 DONE refactor floor plan data to use strings
 DONE run enemy placement during dungeon generation
+DONE lock doors when player enters a new room, until player defeats all enemies in the room
+TODO add upgrade rooms, which are spawned at dead ends, and grant the player 2 or 3 upgrades to choose from
+TODO add small chance for enemies to drop upgrade items
+TODO add small chance for enemies to drop a heart
 TODO make jumpers move away from the walls on average, dont let them cling to the walls
 TODO rework heavy enemy to use a state machine for Move-Towards-Player, and Keep-Distance-And-Shoot states.
 TODO more upgrades!
-TODO lock doors when player enters a new room, until player defeats all enemies in the room
 TODO camerashake on death & killing an enemy
 TODO add orbit shoot source to player
 TODO refactor multi bullets to parent child bullets at orbit points
-TODO fix bug where killing the boss in 1 shot doesnt spawn door
+TODO fix bug where killing the boss in 1 shot doesnt spawn door (?)
 TODO integrate door exit sfx
 TODO integrate player walking sfx
 TODO dont show death screen until after ply damage hitsleep is over
 TODO integrate music loop
 TODO stop music loop when player dies, before hitsleep; after hitsleep play death jingle
+TODO "meter" which charges through cleared rooms. Activating the meter grants improved damage, fire rate, for the duration of the room. Alternatively, maxing out the meter grants these stats for a limited amount of time, passively.
 
 ## boss 1 design
 DONE add "dead-end" flag to rooms. Dead ends can be picked for use as special rooms (e.g. Boss, Shop, Item, Upgrade, etc)
@@ -64,7 +68,6 @@ TODO funny explosion when boss dies :3
 
 ## biiiig stretch
 DONE fix cobblestoning
-TODO "meter" which charges through cleared rooms. Activating the meter grants improved damage, fire rate, for the duration of the room. Alternatively, maxing out the meter grants these stats for a limited amount of time, passively.
 TODO fade-to-black using PAL swapping
 TODO enemy death gibs with some bounciness/physics
 TODO add variation to floor plans by randomly flipping them horizontally and vertically when generating the dungeon
@@ -73,7 +76,6 @@ TODO clean up & animate lvlup menu
 TODO add main menu
 TODO add additional unique floor plans
 TODO make rapid fire weapon alternating
-TODO AABB checks might be faster than sqrdist checks
 TODO use a bullet pool to ensure we never go over the bullet limit
 TODO toggle-able minimap which shows rooms discovered, their shapes, and room types if known.
 TODO add boss animations when ply enters the room (e.g. one the boss falls from the sky, shakes the camera, makes a slam sfx)
