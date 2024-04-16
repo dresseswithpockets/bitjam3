@@ -907,37 +907,37 @@ function coord_corner_sw(x,y)
 end
 
 room_types={
- square={
+ {
   w=1,h=1,
   draw=room_square,
   coord=coord_square,
  },
- tall={
+ {
   w=1,h=2,
   draw=room_tall,
   coord=coord_tall,
  },
- long={
+ {
   w=2,h=1,
   draw=room_long,
   coord=coord_long,
  },
- corner_ne={
+ {
   w=2,h=2,
   draw=room_corner_ne,
   coord=coord_corner_ne,
  },
- corner_se={
+ {
   w=2,h=2,
   draw=room_corner_se,
   coord=coord_corner_se,
  },
- corner_nw={
+ {
   w=2,h=2,
   draw=room_corner_nw,
   coord=coord_corner_nw,
  },
- corner_sw={
+ {
   w=2,h=2,
   draw=room_corner_sw,
   coord=coord_corner_sw,
@@ -1225,216 +1225,104 @@ d_down=1
 d_left=2
 d_right=3
 
-fp_1_12={
- t=room_types.square,
- links={
-   {dcx=0,dcy=0,dir=d_down,trx=1,try=3,tcx=0,tcy=0,},
- },
-}
-fp_1_32={
- t=room_types.square,
- links={
-   {dcx=0,dcy=0,dir=d_right,trx=4,try=2,tcx=0,tcy=0,},
- },
-}
-fp_1_42={
- t=room_types.corner_nw,
- links={
-   {dcx=0,dcy=0,dir=d_left,trx=3,try=2,tcx=0,tcy=0,},
-   {dcx=0,dcy=1,dir=d_down,trx=4,try=4,tcx=0,tcy=0,},
-   {dcx=0,dcy=1,dir=d_left,trx=3,try=3,tcx=0,tcy=0,},
- },
-}
-fp_1_13={
- t=room_types.long,
- links={
-   {dcx=0,dcy=0,dir=d_down,trx=1,try=4,tcx=0,tcy=0,},
-   {dcx=0,dcy=0,dir=d_up,trx=1,try=2,tcx=0,tcy=0,},
-   {dcx=1,dcy=0,dir=d_right,trx=3,try=3,tcx=0,tcy=0,},
- },
-}
-fp_1_33={
- t=room_types.square,
- links={
-   {dcx=0,dcy=0,dir=d_left,trx=1,try=3,tcx=1,tcy=0,},
-   {dcx=0,dcy=0,dir=d_right,trx=4,try=2,tcx=0,tcy=1,},
- },
-}
-fp_1_14={
- t=room_types.square,
- links={
-   {dcx=0,dcy=0,dir=d_up,trx=1,try=3,tcx=0,tcy=0,},
-   {dcx=0,dcy=0,dir=d_down,trx=1,try=5,tcx=0,tcy=0,},
- },
-}
-fp_1_44={
- t=room_types.square,
- links={
-   {dcx=0,dcy=0,dir=d_up,trx=4,try=2,tcx=0,tcy=1,},
- },
-}
-fp_1_15={
- t=room_types.square,
- links={
-   {dcx=0,dcy=0,dir=d_up,trx=1,try=4,tcx=0,tcy=0,},
- },
-}
 fp_1={
- {{},fp_1_12,fp_1_13,fp_1_14,fp_1_15,},
+ {{},"1,0,0,1,1,3,0,0","3,0,0,1,1,4,0,0,0,0,0,1,2,0,0,1,0,3,3,3,0,0","1,0,0,0,1,3,0,0,0,0,1,1,5,0,0","1,0,0,0,1,4,0,0",},
  {{},{},{},{},{},},
- {{},fp_1_32,fp_1_33,{},{},},
- {{},fp_1_42,{},fp_1_44,{},},
- {{},{},{},{},{},},
-}
-
-
-
-fp_2_21={
- t=room_types.square,
- links={
-   {dcx=0,dcy=0,dir=d_down,trx=2,try=2,tcx=0,tcy=0,},
-   {dcx=0,dcy=0,dir=d_right,trx=3,try=1,tcx=0,tcy=0,},
- },
-}
-fp_2_31={
- t=room_types.square,
- links={
-   {dcx=0,dcy=0,dir=d_left,trx=2,try=1,tcx=0,tcy=0,},
- },
-}
-fp_2_22={
- t=room_types.tall,
- links={
-   {dcx=0,dcy=0,dir=d_up,trx=2,try=1,tcx=0,tcy=0,},
-   {dcx=0,dcy=1,dir=d_right,trx=3,try=3,tcx=0,tcy=0,},
- },
-}
-fp_2_33={
- t=room_types.square,
- links={
-   {dcx=0,dcy=0,dir=d_left,trx=2,try=2,tcx=0,tcy=1,},
-   {dcx=0,dcy=0,dir=d_down,trx=3,try=4,tcx=0,tcy=0,},
- },
-}
-fp_2_34={
- t=room_types.long,
- links={
-   {dcx=0,dcy=0,dir=d_down,trx=3,try=5,tcx=0,tcy=0,},
-   {dcx=0,dcy=0,dir=d_up,trx=3,try=3,tcx=0,tcy=0,},
-   {dcx=1,dcy=0,dir=d_right,trx=5,try=4,tcx=0,tcy=0,},
- },
-}
-fp_2_54={
- t=room_types.square,
- links={
-   {dcx=0,dcy=0,dir=d_left,trx=3,try=4,tcx=1,tcy=0,},
- },
-}
-fp_2_35={
- t=room_types.square,
- links={
-   {dcx=0,dcy=0,dir=d_up,trx=3,try=4,tcx=0,tcy=0,},
- },
-}
-fp_2={
- {{},{},{},{},{},},
- {fp_2_21,fp_2_22,{},{},{},},
- {fp_2_31,{},fp_2_33,fp_2_34,fp_2_35,},
- {{},{},{},{},{},},
- {{},{},{},fp_2_54,{},},
-}
-
-
-fp_3_32={
- t=room_types.square,
- links={
-   {dcx=0,dcy=0,dir=d_up,trx=3,try=3,tcx=0,tcy=0,},
- },
-}
-fp_3_33={
- t=room_types.square,
- links={
-   {dcx=0,dcy=0,dir=d_down,trx=3,try=4,tcx=0,tcy=0,},
- },
-}
-fp_3={
- {{},{},{},{},{},},
- {{},{},{},{},{},},
- {{},{},fp_3_33,fp_3_32,{},},
- {{},{},{},{},{},},
+ {{},"1,0,0,3,4,2,0,0","1,0,0,3,4,2,0,1,0,0,2,1,3,1,0",{},{},},
+ {{},"6,0,0,2,3,2,0,0,0,1,2,3,3,0,0,0,1,1,4,4,0,0",{},"1,0,0,0,4,2,0,1",{},},
  {{},{},{},{},{},},
 }
 
+fp_1={
+ {{},{},{},{},{},},
+ {"1,0,0,1,2,2,0,0,0,0,3,3,1,0,0","2,0,0,0,2,1,0,0,0,1,3,3,3,0,0",{},{},{},},
+ {"1,0,0,2,2,1,0,0",{},"1,0,0,2,2,2,0,1,0,0,1,3,4,0,0","3,0,0,0,3,3,0,0,0,0,1,3,5,0,0,1,0,3,5,4,0,0","1,0,0,0,3,4,0,0",},
+ {{},{},{},{},{},},
+ {{},{},{},"1,0,0,2,3,4,1,0",{},},
+}
+
+fp_test={
+ {{},{},{},{},{},},
+ {{},{},{},{},{},},
+ {{},"1,0,0,1,3,3,0,0","1,0,0,0,3,2,0,0",{},{},},
+ {{},{},{},{},{},},
+ {{},{},{},{},{},},
+}
 
 floor_plans={
- --fp_1,
- --fp_2,
- fp_3,
+ fp_1,
+ fp_2,
+ --fp_3_str,
 }
+
+atofp_params={"dcx","dcy","dir","trx","try","tcx","tcy"}
+function atofp_small(s)
+ local t,links=split(s),{}
+ for i=2,#t,7 do
+  local link={}
+  for idx=0,6 do
+   link[atofp_params[idx+1]]=tonum(t[i+idx])
+  end
+  add(links,link)
+ end
+ return {
+  t=room_types[tonum(t[1])],
+  links=links,
+ }
+end
 
 function precalc_doors()
  for plan in all(floor_plans) do
  for col in all(plan) do
- for cell in all(col) do
- for link in all(cell.links) do
-  local door={
-   x1=0,y1=0,
-   x2=0,y2=0,
-   spr1=19,
-   flip_x=false,
-   flip_y=false,
-  }
-  link.door=door
-  if link.dir==d_up then
-   door.x1=56
-   door.x2=64
-  elseif link.dir==d_down then
-   door.x1=56
-   door.x2=64
-   door.y1=120
-   door.y2=120
-   door.flip_y=true
-  elseif link.dir==d_left then
-   door.y1=64
-   door.y2=56
-   door.spr1=21
-  elseif link.dir==d_right then
-   door.y1=64
-   door.y2=56
-   door.x1=120
-   door.x2=120
-   door.spr1=21
-   door.flip_x=true
+ for y,cell in ipairs(col) do
+  if type(cell)=="string" do
+   col[y]=atofp_small(cell)
   end
-  
-  local ix=link.dcx*128
-  local iy=link.dcy*128
-  door.x1+=ix
-  door.y1+=iy
-  door.x2+=ix
-  door.y2+=iy
+  cell=col[y]
+	 for link in all(cell.links) do
+	  local door={
+	   x1=0,y1=0,
+	   x2=0,y2=0,
+	   spr1=19,
+	   flip_x=false,
+	   flip_y=false,
+	  }
+	  link.door=door
+	  if link.dir==d_up then
+	   door.x1=56
+	   door.x2=64
+	  elseif link.dir==d_down then
+	   door.x1=56
+	   door.x2=64
+	   door.y1=120
+	   door.y2=120
+	   door.flip_y=true
+	  elseif link.dir==d_left then
+	   door.y1=64
+	   door.y2=56
+	   door.spr1=21
+	  elseif link.dir==d_right then
+	   door.y1=64
+	   door.y2=56
+	   door.x1=120
+	   door.x2=120
+	   door.spr1=21
+	   door.flip_x=true
+	  end
+	  
+	  local ix=link.dcx*128
+	  local iy=link.dcy*128
+	  door.x1+=ix
+	  door.y1+=iy
+	  door.x2+=ix
+	  door.y2+=iy
+	 end
  end
  end
- end
- end
-end
-
-function precalc_flips()
- local new_plans={}
- for plan in all(floor_plans) do
-  local hori={}
-  for x,col in ipairs(plan) do
-   hori[1+#plan-x]=col
-  end
-  add(new_plans,hori)
- end
- for plan in all(new_plans) do
-  add(floor_plans,plan)
  end
 end
 
 precalc_doors()
---precalc_flips()
 
 function floor_from_plan(plan)
  local ends={}
