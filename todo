@@ -40,6 +40,7 @@ DONE replace boss circfill transition with fadeout transition
 DONE refactor floor plan data to use strings
 DONE run enemy placement during dungeon generation
 DONE lock doors when player enters a new room, until player defeats all enemies in the room
+TODO menu cart
 TODO add upgrade rooms, which are spawned at dead ends, and grant the player 2 or 3 upgrades to choose from
 TODO add small chance for enemies to drop upgrade items
 TODO add small chance for enemies to drop a heart
