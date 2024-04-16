@@ -2012,7 +2012,8 @@ sfx_ply_dmg=hitstun_sfx(
 --music_loop1=track(0)
 --music_death_boss=track(1)
 --music_death_norm=track(2)
-
+--music_loop2=track(3)
+--music_boss_loop=track(4)
 -->8
 -- states: boss room
 
