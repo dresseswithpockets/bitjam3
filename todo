@@ -95,7 +95,7 @@ DONE menu item select sfx
 DONE player light shot sfx
 DONE player seeker/heavy shot sfx
 DONE player take damage sfx
-TODO player moving sfx (?)
+DONE player moving sfx (?)
 DONE player enter/exit door SFX
 TODO heavy enemy shot sfx (could probably be the same as the player's heavy shot sfx)
 TODO boss cluster shot sfx (could probably be the same as the player's light shot sfx)
