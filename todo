@@ -55,6 +55,7 @@ TODO funny explosion when boss dies :3
 
 ## biiiig stretch
 DONE fix cobblestoning
+TODO fade-to-black using PAL swapping
 TODO enemy death gibs with some bounciness/physics
 TODO add variation to floor plans by randomly flipping them horizontally and vertically when generating the dungeon
 TODO clean up & animate door transitions
