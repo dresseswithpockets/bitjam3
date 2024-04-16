@@ -1324,9 +1324,15 @@ end
 
 precalc_doors()
 
+function rgen_swarm()
+ -- generates a handful of
+ -- jumpers, 1 per corner
+ -- can either be 3 or 4
+ local cnt=3+flr(rnd(2))
+end
+
 function floor_from_plan(plan)
- local ends={}
- local floor={}
+ local rooms,ends,floor={},{},{}
  for x,col in ipairs(plan) do
   local col_rooms={}
   for y,cell in ipairs(col) do
@@ -1341,6 +1347,7 @@ function floor_from_plan(plan)
     add(ends,room)
    end
    add(col_rooms,room)
+   add(rooms,room)
   end
   add(floor,col_rooms)
  end
@@ -1349,6 +1356,11 @@ function floor_from_plan(plan)
  local boss_room=rnd(ends)
  boss_room.boss=true
  boss_room.boss_func=rnd(bosses)
+ -- loop through rooms and add
+ -- enemies
+ for room in all(rooms) do
+  
+ end
  return floor
 end
 -->8
