@@ -1,6 +1,61 @@
 pico-8 cartridge // http://www.pico-8.com
 version 42
 __lua__
+-- vector.p8
+-- by @thacuber2a03
+-- modified by snale
+
+function vector(x,y) return {x=x or 0,y=y or 0} end
+vec=vector
+
+function v_polar(l,a) return vector(l*sin(a),l*cos(a)) end
+function v_rnd()      return v_polar(1,rnd())          end
+
+function v_cpy(v)     return vector(v.x,v.y) end
+function v_unpck(v)   return v.x, v.y end
+function v_arr(v)     return {v_unpck(v)} end
+function v_tostr(v)   return "["..v.x..", "..v.y.."]" end
+function v_isvec(v)   return type(v)=="table" and type(v.x)=="number" and type(v.y)=="number" end
+function v_eq(a,b)    return a.x==b.x and a.y==b.y end
+
+function v_add(a,b)  return vector( a.x+b.x,  a.y+b.y) end
+function v_sub(a,b)  return vector( a.x-b.x,  a.y-b.y) end
+function v_mul(v,n)  return vector( v.x*n,    v.y*n  ) end
+function v_div(v,n)  return vector( v.x/n,    v.y/n  ) end
+function v_divi(v,n) return vector( v.x\n,    v.y\n  ) end
+function v_mod(v,n)  return vector( v.x%n,    v.y%n  ) end
+function v_neg(v)    return vector(-v.x,     -v.y    ) end
+
+function v_dot(a,b)   return a.x*b.x+a.y*b.y end
+function v_magsq(v)   return v_dot(v,v)          end
+function v_mag(v)     return sqrt(v_magsq(v))    end
+function v_dstsq(a,b) return v_magsq(v_sub(b,a)) end
+function v_dst(a,b)   return sqrt(v_dstsq(a,b))  end
+function v_norm(v)    return v_div(v,v_mag(v))   end
+function v_perp(v)    return vector(v.y, -v.x)   end
+function v_sprj(a,b)  return v_dot(a,v_norm(b))  end
+function v_proj(a,b)  return v_mul(v_norm(b),v_sprj(a,b)) end
+function v_dir(a,b)   return v_norm(v_sub(b,a))  end
+
+--function v_rot(v,t)    local s,c=sin(v_ang(v)-t),cos(v_ang(v)-t) return vector(v.x*c+v.y*s, -(s*v.x)+c*v.y) end
+function v_rot(v,a)    local s,c=sin(a),cos(a) return vector(c*v.x-s*v.y,s*v.x+c*v.y) end
+function v_ang(v)      return atan2(v.x,v.y)    end
+function v_atwds(a,b)  return v_ang(v_sub(b,a)) end
+
+function v_lerp(a,b,t) return vector(a.x+(b.x-a.x)*t, a.y+(b.y-a.y)*t) end
+function v_flr(v)      return vector(flr(v.x),flr(v.y)) end
+
+v_right=vector( 1, 0)
+v_left =vector(-1, 0)
+v_down =vector( 0, 1)
+v_up   =vector( 0,-1)
+
+v_zero=vector()
+v_one =vector(1,1)
+v_half=vector(0.5,0.5)
+
+v_cntr=vector(64,64)
+-->8
 -- game
 debug=true
 function ply_shoot()
@@ -1324,6 +1379,12 @@ end
 
 precalc_doors()
 
+rgen_corners={
+ vec(10,10),
+ vec(110,10),
+ vec(10,110),
+ vec(110,110),
+}
 function rgen_swarm()
  -- generates a handful of
  -- jumpers, 1 per corner
@@ -1850,61 +1911,6 @@ end
 bosses={
  e_boss_lilguy,
 }
--->8
--- vector.p8
--- by @thacuber2a03
--- modified by snale
-
-function vector(x,y) return {x=x or 0,y=y or 0} end
-vec=vector
-
-function v_polar(l,a) return vector(l*sin(a),l*cos(a)) end
-function v_rnd()      return v_polar(1,rnd())          end
-
-function v_cpy(v)     return vector(v.x,v.y) end
-function v_unpck(v)   return v.x, v.y end
-function v_arr(v)     return {v_unpck(v)} end
-function v_tostr(v)   return "["..v.x..", "..v.y.."]" end
-function v_isvec(v)   return type(v)=="table" and type(v.x)=="number" and type(v.y)=="number" end
-function v_eq(a,b)    return a.x==b.x and a.y==b.y end
-
-function v_add(a,b)  return vector( a.x+b.x,  a.y+b.y) end
-function v_sub(a,b)  return vector( a.x-b.x,  a.y-b.y) end
-function v_mul(v,n)  return vector( v.x*n,    v.y*n  ) end
-function v_div(v,n)  return vector( v.x/n,    v.y/n  ) end
-function v_divi(v,n) return vector( v.x\n,    v.y\n  ) end
-function v_mod(v,n)  return vector( v.x%n,    v.y%n  ) end
-function v_neg(v)    return vector(-v.x,     -v.y    ) end
-
-function v_dot(a,b)   return a.x*b.x+a.y*b.y end
-function v_magsq(v)   return v_dot(v,v)          end
-function v_mag(v)     return sqrt(v_magsq(v))    end
-function v_dstsq(a,b) return v_magsq(v_sub(b,a)) end
-function v_dst(a,b)   return sqrt(v_dstsq(a,b))  end
-function v_norm(v)    return v_div(v,v_mag(v))   end
-function v_perp(v)    return vector(v.y, -v.x)   end
-function v_sprj(a,b)  return v_dot(a,v_norm(b))  end
-function v_proj(a,b)  return v_mul(v_norm(b),v_sprj(a,b)) end
-function v_dir(a,b)   return v_norm(v_sub(b,a))  end
-
---function v_rot(v,t)    local s,c=sin(v_ang(v)-t),cos(v_ang(v)-t) return vector(v.x*c+v.y*s, -(s*v.x)+c*v.y) end
-function v_rot(v,a)    local s,c=sin(a),cos(a) return vector(c*v.x-s*v.y,s*v.x+c*v.y) end
-function v_ang(v)      return atan2(v.x,v.y)    end
-function v_atwds(a,b)  return v_ang(v_sub(b,a)) end
-
-function v_lerp(a,b,t) return vector(a.x+(b.x-a.x)*t, a.y+(b.y-a.y)*t) end
-function v_flr(v)      return vector(flr(v.x),flr(v.y)) end
-
-v_right=vector( 1, 0)
-v_left =vector(-1, 0)
-v_down =vector( 0, 1)
-v_up   =vector( 0,-1)
-
-v_zero=vector()
-v_one =vector(1,1)
-v_half=vector(0.5,0.5)
-
-v_cntr=vector(64,64)
 -->8
 -- sfx
 
