@@ -58,6 +58,14 @@ v_cntr=vector(64,64)
 -->8
 -- game
 debug=true
+function shuffle(t)
+  -- do a fisher-yates shuffle
+  for i = #t, 1, -1 do
+    local j = flr(rnd(i)) + 1
+    t[i], t[j] = t[j], t[i]
+  end
+end
+
 function ply_shoot()
  local bullet=nil
  if ply.form==1 then
@@ -361,6 +369,8 @@ function setup_next_floor()
  floor=floor_from_plan(plan)
  cell_x,cell_y=3,3
  room=floor[cell_x][cell_y]
+ ?room.enemies[1].health
+ --assert(false)
  boss=nil
 end
 
@@ -401,6 +411,9 @@ function _init()
  ply.trans=false
  ply.trans_timer=0
  ply.spd=75/60 -- px/sec
+ 
+ ply.init()
+ 
  ply_spd_shoot_mult=0.85
  shoot_time=15 -- frame delay
  shoot_timer=0
@@ -434,12 +447,11 @@ function _init()
  
  hitstun_awaiters={}
 
- add(room.enemies,e_walker(vec(20,20)))
+ --add(room.enemies,e_walker(vec(20,20)))
  --add(room.enemies,e_jumper(vec(20,20)))
  --add(room.enemies,e_heavy(vec(20,20)))
  
- ply.init()
- room.enemies[1].init()
+ --room.enemies[1].init()
  
  -- todo: do we really want
  --  to present this on startup?
@@ -1304,10 +1316,19 @@ fp_test={
  {{},{},{},{},{},},
 }
 
+fp_test={
+ {{},{},{},{},{},},
+ {{},{},{},{},{},},
+ {{},{},"1,0,0,1,3,4,0,0","1,0,0,0,3,3,0,0",{},},
+ {{},{},{},{},{},},
+ {{},{},{},{},{},},
+}
+
 floor_plans={
- fp_1,
- fp_2,
+ --fp_1,
+ --fp_2,
  --fp_3_str,
+ fp_test,
 }
 
 atofp_params={"dcx","dcy","dir","trx","try","tcx","tcy"}
@@ -1380,17 +1401,61 @@ end
 precalc_doors()
 
 rgen_corners={
- vec(10,10),
- vec(110,10),
- vec(10,110),
+ vec(18,18),
+ vec(110,18),
+ vec(18,110),
  vec(110,110),
 }
-function rgen_swarm()
+function add_enemies_at_coords(r,cnt, fac)
+ shuffle(rgen_corners)
+ for i=1,cnt do
+  local e=fac(rgen_corners[i])
+  e.pos=v_sub(e.pos,v_div(e.s_size,2))
+  e.init()
+  add(r.enemies,e)
+ end
+end
+
+function rgen_swarm(r)
  -- generates a handful of
  -- jumpers, 1 per corner
  -- can either be 3 or 4
  local cnt=3+flr(rnd(2))
+ add_enemies_at_coords(r,cnt,e_jumper)
 end
+
+function rgen_walkers(r)
+ local chance,cnt=rnd(),0
+ if chance<0.5then cnt=1
+ elseif chance<0.8then cnt=2
+ else cnt=3 end
+ add_enemies_at_coords(r,cnt,e_walker)
+end
+
+function rgen_walker_pets(r)
+ local chance,cnt=rnd(),0
+ if chance<0.75then cnt=1
+ else cnt=2 end
+ add_enemies_at_coords(r,cnt,e_walker)
+ for i=#r.enemies,1,-1 do
+  local owner=r.enemies[i]
+  local e=e_jumper(
+   v_add(owner.pos,v_mul(v_dir(owner.c_center,v_cntr),16)))
+  e.init()
+  add(r.enemies,e)
+ end
+end
+
+function rgen_heavy(r)
+ add_enemies_at_coords(r,1,e_heavy)
+end
+
+rgen_types={
+ rgen_swarm,
+ rgen_walkers,
+ rgen_walker_pets,
+ rgen_heavy,
+}
 
 function floor_from_plan(plan)
  local rooms,ends,floor={},{},{}
@@ -1408,7 +1473,9 @@ function floor_from_plan(plan)
     add(ends,room)
    end
    add(col_rooms,room)
-   add(rooms,room)
+   if cell.t then
+    add(rooms,room)
+   end
   end
   add(floor,col_rooms)
  end
@@ -1420,7 +1487,9 @@ function floor_from_plan(plan)
  -- loop through rooms and add
  -- enemies
  for room in all(rooms) do
-  
+  if not room.boss then
+   rnd(rgen_types)(room)
+  end
  end
  return floor
 end
@@ -1494,14 +1563,6 @@ function next_upgrade()
   shuffle(upgrades)
  end
  return item
-end
-
-function shuffle(t)
-  -- do a fisher-yates shuffle
-  for i = #t, 1, -1 do
-    local j = flr(rnd(i)) + 1
-    t[i], t[j] = t[j], t[i]
-  end
 end
 
 shuffle(upgrades)

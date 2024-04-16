@@ -38,7 +38,7 @@ DONE add door which transitions to a new floor
 DONE use boss circfill transition for floor transitions
 DONE replace boss circfill transition with fadeout transition
 DONE refactor floor plan data to use strings
-TODO run enemy placement during dungeon generation
+DONE run enemy placement during dungeon generation
 TODO make jumpers move away from the walls on average, dont let them cling to the walls
 TODO rework heavy enemy to use a state machine for Move-Towards-Player, and Keep-Distance-And-Shoot states.
 TODO more upgrades!
