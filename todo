@@ -28,21 +28,28 @@ DONE add shooting-induced knockback to player
 DONE add hitstop/hitsleep when taking damage
 DONE add hitstop/hitsleep when killing an enemy
 DONE precalculate topleft and center after every move, so that center() and topleft() can be removed
-TODO add door which transitions to a new floor
+DONE investigate if using a vector class would save tokens
+DONE integrate menu SFX
+DONE integrate shooting SFX
+DONE add a flag for bullets which dont get deleted after they damage the player
+DONE integrate player damage sfx
+DONE integrate door enter sfx
+DONE add door which transitions to a new floor
+DONE use boss circfill transition for floor transitions
+DONE replace boss circfill transition with fadeout transition
+TODO run enemy placement during dungeon generation
 TODO update floor plan selection to run whenever the player enters a new floor
 TODO make jumpers move away from the walls on average, dont let them cling to the walls
-DONE investigate if using a vector class would save tokens
-TODO investigate merging check_dist and sqrdist
-TODO add a flag for bullets which dont get deleted after they damage the player
 TODO rework heavy enemy to use a state machine for Move-Towards-Player, and Keep-Distance-And-Shoot states.
 TODO more upgrades!
 TODO lock doors when player enters a new room, until player defeats all enemies in the room
-TODO use boss circfill transition for floor transitions
-TODO replace boss circfill transition with fadeout transition
-TODO integrate menu SFX
 TODO camerashake on death & killing an enemy
-TODO add orbit shoot source
+TODO add orbit shoot source to player
 TODO refactor multi bullets to parent child bullets at orbit points
+TODO refactor floor plan data to use strings
+TODO fix bug where killing the boss in 1 shot doesnt spawn door
+TODO integrate door exit sfx
+TODO integrate player walking sfx
 
 ## boss 1 design
 DONE add "dead-end" flag to rooms. Dead ends can be picked for use as special rooms (e.g. Boss, Shop, Item, Upgrade, etc)
@@ -55,6 +62,7 @@ TODO funny explosion when boss dies :3
 
 ## biiiig stretch
 DONE fix cobblestoning
+TODO "meter" which charges through cleared rooms. Activating the meter grants improved damage, fire rate, for the duration of the room. Alternatively, maxing out the meter grants these stats for a limited amount of time, passively.
 TODO fade-to-black using PAL swapping
 TODO enemy death gibs with some bounciness/physics
 TODO add variation to floor plans by randomly flipping them horizontally and vertically when generating the dungeon
@@ -67,6 +75,8 @@ TODO AABB checks might be faster than sqrdist checks
 TODO use a bullet pool to ensure we never go over the bullet limit
 TODO toggle-able minimap which shows rooms discovered, their shapes, and room types if known.
 TODO add boss animations when ply enters the room (e.g. one the boss falls from the sky, shakes the camera, makes a slam sfx)
+TODO whenever the player takes damage, use a palette swap to swap white to a red (maybe secret palette dark-red 128-8)
+TODO post floor clear screen
 
 # art
 DONE placeholder player
@@ -83,6 +93,7 @@ TODO replace placeholder player sprite (8 direction - flippable)
 TODO sprites/particles for a transformation effect (this could be smoke particles, or anything really that conceals the player)
 TODO replace placeholder tiles
 TODO a sprite representing quad damage to render on the players HUD whenever they have quad damage from transforming
+TODO special sprite for the boss's door
 
 ## biiiig stretch
 TODO alternate player sprites for mode/transformation
@@ -101,6 +112,11 @@ DONE player enter/exit door SFX
 TODO heavy enemy shot sfx (could probably be the same as the player's heavy shot sfx)
 TODO boss cluster shot sfx (could probably be the same as the player's light shot sfx)
 TODO boss death SFX (a funny explosion, pawbably)
+TODO player death SFX
 
 # music
 TODO a simple ambient loop
+TODO player death screen music
+
+## biiig stretch
+TODO floor clear jingle
