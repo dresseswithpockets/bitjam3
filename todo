@@ -44,17 +44,18 @@ DONE dont show death screen until after ply damage hitsleep is over
 DONE integrate music loop
 DONE stop music loop when player dies, before hitsleep; after hitsleep play death jingle
 DONE make jumpers move away from the walls on average, dont let them cling to the walls
-TODO add upgrade rooms, which are spawned at dead ends, and grant the player 2 or 3 upgrades to choose from
-TODO add small chance for enemies to drop upgrade items
-TODO add small chance for enemies to drop a heart
-TODO rework heavy enemy to use a state machine for Move-Towards-Player, and Keep-Distance-And-Shoot states.
+DONE add upgrade rooms, which are spawned at dead ends, and grant the player 2 or 3 upgrades to choose from
+DONE add small chance for enemies to drop a heart
+DONE add item and heart drops to bosses
 TODO more items!
-TODO camerashake on death & killing an enemy
 TODO add orbit shoot source to player
+TODO "meter" which charges through cleared rooms. Activating the meter grants improved damage, fire rate, for the duration of the room. Alternatively, maxing out the meter grants these stats for a limited amount of time, passively.
+TODO add small chance for enemies to drop upgrade items
+TODO rework heavy enemy to use a state machine for Move-Towards-Player, and Keep-Distance-And-Shoot states.
+TODO camerashake on death & killing an enemy
 TODO refactor multi bullets to parent child bullets at orbit points
 TODO integrate door exit sfx
 TODO integrate player walking sfx
-TODO "meter" which charges through cleared rooms. Activating the meter grants improved damage, fire rate, for the duration of the room. Alternatively, maxing out the meter grants these stats for a limited amount of time, passively.
 TODO menu cart
 TODO fix bug where killing the boss in 1 shot doesnt spawn door (?)
 

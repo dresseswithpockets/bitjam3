@@ -58,11 +58,11 @@ v_cntr=vec(64,64)
 -- game
 debug=true
 function shuffle(t)
-  -- do a fisher-yates shuffle
-  for i = #t, 1, -1 do
-    local j = flr(rnd(i)) + 1
-    t[i], t[j] = t[j], t[i]
-  end
+ -- do a fisher-yates shuffle
+ for i=#t,1,-1 do
+ local j=flr(rnd(i))+1
+  t[i],t[j]=t[j],t[i]
+ end
 end
 
 function ply_shoot()
@@ -113,6 +113,10 @@ function goto_room(rx,ry,tcx,tcy,dir)
   state_boss_room_enter()
   return
  end
+ -- todo: add a timer for
+ --  switching to a different
+ --  track on non-state room
+ --  changes
  room=next_room
  room.locked=#room.enemies>0
  local ix=tcx*16*8
@@ -172,15 +176,6 @@ function dmg_ply(n)
   sfx_ply_dmg_last.play()
   add(hitstun_awaiters,state_dead)
  end
-end
-
-function present_lvlup()
- menu_idx=1
- show_lvlup_menu=true
- lvlup_choices={
-  next_item(),
-  next_item()
- }
 end
 
 function entity(c_rad,
@@ -413,8 +408,6 @@ function _init()
  menu_idx=1
  menu_noquit_counter=0
  
- show_lvlup_menu=false
- 
  -- player stuff
  ply=entity(
   1,
@@ -448,7 +441,7 @@ function _init()
  spd_bullet=140/60 -- px/sec
  spd_seeker=1
  
- ply_dmg=2
+ ply_dmg=10
  trans_quad_time=0
  trans_quad_timer=0
  trans_delay=20
@@ -479,7 +472,7 @@ function _init()
  
  -- todo: do we really want
  --  to present this on startup?
- present_lvlup()
+ --present_lvlup()
  state_normal()
 end
 
@@ -498,11 +491,6 @@ function update_normal()
  for i=#hitstun_awaiters,1,-1 do
   hitstun_awaiters[i]()
   deli(hitstun_awaiters,i)
- end
- 
- if show_lvlup_menu then
-  update_lvlup_menu()
-  return
  end
  
  if trans_quad_timer>0 then
@@ -619,6 +607,33 @@ function update_normal()
  -- todo: do i need to update
  --  coords post-move or
  --  pre-move or both?
+ 
+ -- allow player to select &
+ -- acquire an item
+ local selected_item=false
+ for item in all(room.items) do
+  if item.aabb(ply) and btnp(🅾️) then
+   item.acquire()
+   selected_item=true
+   sfx_menu_sel.play()
+   add(ply_items,item)
+   break
+  end
+ end
+ 
+ for hi=#room.hearts,1,-1 do
+  if room.hearts[hi].aabb(ply) and ply.health<3 and ply.health>0 then
+   -- todo: heart pickup sfx
+   ply.health+=1
+   deli(room.hearts,hi)
+  end
+ end
+ 
+ -- remove all items after player
+ -- chooses an item
+ if selected_item then
+  room.items={}
+ end
 
  -- get and clamp camera scroll
  cam_x,cam_y=v_unpck(ply.pos)
@@ -626,23 +641,6 @@ function update_normal()
  
  last_keys_bits=key_bits
  last_keys=keys_value
-end
-
-function update_lvlup_menu()
- if btnp(⬆️) or btnp(⬇️) then
-  menu_idx=menu_idx==1 and 2 or 1
-  sfx_menu_hi.play()
- end
- 
- if btnp(🅾️) then
-  local choice=lvlup_choices[menu_idx]
-  local item=choice.fac(v_cpy(v_zero))
-  item.init()
-  item.acquire()
-  add(ply_items,item)
-  show_lvlup_menu=false
-  sfx_menu_sel.play()
- end
 end
 
 function update_nearest_enemy()
@@ -706,18 +704,45 @@ function update_bullets()
      local e=room.enemies[ei]
      if bul.circ(e) then
 	     local dmg=ply_dmg*bul.dmg_mult
+	     -- apply funny quad dmg
       if trans_quad_timer>0 then
        dmg*=4
       end
       if not e.dmg(dmg) then
        deli(room.enemies,ei)
        hitsleep=15
+       
+       -- small chance of 
+       -- dropping a heart
+       if not room.boss and rnd()<0.05 then
+	       local h=heart(e.pos)
+	       h.init()
+	       add(room.hearts,h)
+       end
+       
        if #room.enemies==0 then
         if room.boss then
          -- todo: make less abrupt,
          --  with a timer or something
          music_loop2.play()
+         -- if player kills boss, boss
+         -- drops an item in the center
+         -- of the room
+         -- theres a 50% chance for the
+         -- boss to drop a heart
+         -- instead of an item
+         if ply.health<3 and rnd()<0.5 then
+          local h=heart(v_cntr)
+          h.init()
+          add(room.hearts,h)
+         else
+	         local item=next_item().fac(vec(56,56))
+	         item.init()
+	         add(room.items,item)
+	        end
         end
+        -- unlock room if all 
+        -- enemies are gone
         room.locked=false
        end
       end
@@ -754,24 +779,22 @@ function draw_normal()
  camera(cam_x-64, cam_y-64)
  if room.boss and boss then
   draw_boss_room()
- elseif room.item then
  else
   room.t.draw()
   draw_doors()
  end
+ 
  if (ply.iframes%10)<7 or hitsleep>0 then
   ply.draw()
  end
- draw_bullets()
- draw_enemies()
+ draw_all(bullets)
+ draw_all(room.hearts)
+ draw_all(room.enemies)
+ draw_all(room.items)
  
  camera(0,0)
  draw_ply_hp()
  draw_ply_items()
- 
- if show_lvlup_menu then
-  draw_lvlup_menu()
- end
  
  -- debug/test zone
 end
@@ -794,15 +817,9 @@ function draw_item_room()
  rect(0,0,127,127,7)
 end
 
-function draw_bullets()
- for b in all(bullets) do
-  b.draw()
- end
-end
-
-function draw_enemies()
- for e in all(room.enemies) do
-  e.draw()
+function draw_all(t)
+ for item in all(t) do
+  item.draw()
  end
 end
 
@@ -826,28 +843,6 @@ function draw_ply_items()
  end
 end
 
-function draw_lvlup_menu()
- rect(6,30,124,90,7)
- rectfill(7,31,123,89,0)
- 
- local c1=lvlup_choices[1]
- local c2=lvlup_choices[2]
- 
- for i,v in ipairs(c1.desc) do
-  print(v,10,28+i*6,7)
- end
- 
- for i,v in ipairs(c2.desc) do
-  print(v,10,58+i*6,7)
- end
- 
- if menu_idx==1 then
-  rect(8,32,120,34+#c1.desc*6,7)
- else
-  rect(8,62,120,64+#c2.desc*6,7)
- end
-end
-
 -->8
 -- input util
 unit_45=0.707
@@ -867,7 +862,7 @@ function keys()
 end
 
 -->8
--- room types
+-- room shapes
 function room_square()
  map(0, 0)
 end
@@ -1470,6 +1465,8 @@ function floor_from_plan(plan)
     t=cell.t,
     links=cell.links,
     enemies={},
+    items={},
+    hearts={},
    }
    -- only add dead end room
    -- if its not the center room
@@ -1491,9 +1488,15 @@ function floor_from_plan(plan)
  del(ends,boss_room)
  -- pick random room for item room
  local item_room=rnd(ends)
- if item_room != nil then
+ if item_room!=nil then
   item_room.item=true
-  
+  -- two items per item room
+  -- center left & center right
+  for i=0,1 do
+   local item=next_item().fac(vec(36+i*42,50))
+	  item.init()
+	  add(item_room.items,item)
+  end
  end
  -- loop through rooms and add
  -- enemies
@@ -1501,14 +1504,22 @@ function floor_from_plan(plan)
   if not room.boss and not room.item then
    rnd(rgen_types)(room)
   end
-  if room.item then
-   room.item=rnd(items)
-  end
  end
  return floor
 end
 -->8
 -- items
+
+function heart(pos)
+ local h=entity(
+  3,
+  v_zero,
+  vec(8,8),
+  32,0,
+  vec(8,8))
+ h.pos=pos
+ return h
+end
 
 function i_rapid_fire(pos)
  local item=entity(
@@ -1519,6 +1530,7 @@ function i_rapid_fire(pos)
   vec(8,8))
  item.pos=pos
  item.c_active=false
+ item.info=i_rapid_fire_info
  
  local base_draw=item.draw
  function item.draw()
@@ -1533,7 +1545,7 @@ function i_rapid_fire(pos)
  
  function item.acquire()
 	 -- increase ply shoot speed
-	 shoot_time-=1
+	 shoot_time-=5
 	 -- todo: make the shoot speed
 	 --  weapon-specific
 	 -- decrease ply move speed
@@ -1639,12 +1651,8 @@ function enemy(pos,
  function e.dmg(n,dir,knock)
   e.health-=n
   dir=dir or v_dir(ply.c_center,e.c_center)
-  knock=knock or min(n,10)
+  knock=2
   e.knock=v_mul(dir,knock)
-  if knock>5 then
-   -- big knockback!
-   hitsleep=15
-  end
  	return e.health>0
  end
  
@@ -2137,7 +2145,7 @@ end
 function boss_enter_fadein_draw()
  cls()
  draw_boss_room()
- draw_enemies()
+ draw_all(enemies)
  ply.draw()
  draw_ply_hp()
  poke(0x5f34, 0x2)
