@@ -40,23 +40,23 @@ DONE replace boss circfill transition with fadeout transition
 DONE refactor floor plan data to use strings
 DONE run enemy placement during dungeon generation
 DONE lock doors when player enters a new room, until player defeats all enemies in the room
+DONE dont show death screen until after ply damage hitsleep is over
+DONE integrate music loop
+DONE stop music loop when player dies, before hitsleep; after hitsleep play death jingle
+DONE make jumpers move away from the walls on average, dont let them cling to the walls
 TODO add upgrade rooms, which are spawned at dead ends, and grant the player 2 or 3 upgrades to choose from
 TODO add small chance for enemies to drop upgrade items
 TODO add small chance for enemies to drop a heart
-TODO make jumpers move away from the walls on average, dont let them cling to the walls
 TODO rework heavy enemy to use a state machine for Move-Towards-Player, and Keep-Distance-And-Shoot states.
 TODO more upgrades!
 TODO camerashake on death & killing an enemy
 TODO add orbit shoot source to player
 TODO refactor multi bullets to parent child bullets at orbit points
-TODO fix bug where killing the boss in 1 shot doesnt spawn door (?)
 TODO integrate door exit sfx
 TODO integrate player walking sfx
-TODO dont show death screen until after ply damage hitsleep is over
-TODO integrate music loop
-TODO stop music loop when player dies, before hitsleep; after hitsleep play death jingle
 TODO "meter" which charges through cleared rooms. Activating the meter grants improved damage, fire rate, for the duration of the room. Alternatively, maxing out the meter grants these stats for a limited amount of time, passively.
 TODO menu cart
+TODO fix bug where killing the boss in 1 shot doesnt spawn door (?)
 
 ## boss 1 design
 DONE add "dead-end" flag to rooms. Dead ends can be picked for use as special rooms (e.g. Boss, Shop, Item, Upgrade, etc)

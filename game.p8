@@ -95,6 +95,11 @@ function has_col(x,y)
 end
 
 function state_normal()
+ if room.boss then
+  music_boss_loop.play()
+ else
+  music_loop1.play()
+ end
  state_update=update_normal
  state_draw=draw_normal
 end
@@ -103,12 +108,13 @@ function goto_room(rx,ry,tcx,tcy,dir)
  sfx_door_enter.play()
  next_room=floor[rx][ry]
  bullets={}
- if next_room.boss then
+ if next_room.boss then 
+  music(-1,500)
   state_boss_room_enter()
   return
  end
  room=next_room
- room.locked=true
+ room.locked=#room.enemies>0
  local ix=tcx*16*8
  local iy=tcy*16*8
  local cx,cy,rx,ry=0,0,0,0
@@ -155,9 +161,16 @@ function dmg_ply(n)
  ply.health-=n or 1
  -- 2 seconds of iframes
  ply.iframes=120
- hitsleep=15
  if ply.health>0 then
+  hitsleep=15
   sfx_ply_dmg.play()
+ else
+  -- after hitsleep is over, switch
+  -- to dead state
+  music(-1)
+  hitsleep=60
+  sfx_ply_dmg_last.play()
+  add(hitstun_awaiters,state_dead)
  end
 end
 
@@ -437,6 +450,7 @@ function _init()
  
  -- hitsleep & shake
  hitsleep=0
+ hitstun_awaiters={}
  
  dungeon={
   rnd(floor_plans),
@@ -444,8 +458,6 @@ function _init()
  }
  floor_idx=0
  setup_next_floor()
- 
- hitstun_awaiters={}
 
  --add(room.enemies,e_walker(vec(20,20)))
  --add(room.enemies,e_jumper(vec(20,20)))
@@ -474,11 +486,6 @@ function update_normal()
  for i=#hitstun_awaiters,1,-1 do
   hitstun_awaiters[i]()
   deli(hitstun_awaiters,i)
- end
-
- if ply.health <=0 then
-  update_dead()
-  return
  end
  
  if show_lvlup_menu then
@@ -608,27 +615,6 @@ function update_normal()
  last_keys=keys_value
 end
 
-function update_dead()
- if btnp(➡️) or btnp(⬅️) then
-  menu_idx=menu_idx==1 and 2 or 1
-  sfx_menu_hi.play()
- end
- 
- if menu_noquit_counter>0 then
-  menu_noquit_counter-=1
- end
- 
- if btnp(🅾️) and menu_idx==2 then
-  menu_noquit_counter=150
-  sfx_menu_back.play()
- end
- 
- if btnp(🅾️) and menu_idx==1 then
-  _init()
-  sfx_menu_sel.play()
- end
-end
-
 function update_lvlup_menu()
  if btnp(⬆️) or btnp(⬇️) then
   menu_idx=menu_idx==1 and 2 or 1
@@ -710,6 +696,11 @@ function update_bullets()
        deli(room.enemies,ei)
        hitsleep=15
        if #room.enemies==0 then
+        if room.boss then
+         -- todo: make less abrupt,
+         --  with a timer or something
+         music_loop2.play()
+        end
         room.locked=false
        end
       end
@@ -742,10 +733,6 @@ end
 
 function draw_normal()
  cls(0)
- if ply.health<=0 then
-  draw_dead_menu()
-  return
- end
 
  camera(cam_x-64, cam_y-64)
  if room.boss and boss then
@@ -830,25 +817,6 @@ function draw_lvlup_menu()
  end
 end
 
-function draw_dead_menu()
- print("YOU ARE DEAD,", 38, 40, 7)
- print("NOT BIG SURPRISE", 32, 46, 7)
- 
- -- centered on thirds 43, 85
- print("start", 33, 82)
- print("again", 33, 88)
- print("quit", 92, 85)
- 
- if menu_idx==1 then
-  print("🅾️", 33-9, 85)
- else
-  print("🅾️", 92-9, 85)
- end
- 
- if menu_noquit_counter>0 then
-  print("you cant go...", 38, 64)
- end
-end
 -->8
 -- input util
 unit_45=0.707
@@ -1044,7 +1012,7 @@ function clamp_scroll_to_room()
  end
 end
 -->8
--- bullet funcs
+-- bullets
 t_player=0
 t_enemy=1
 
@@ -1330,10 +1298,10 @@ fp_test={
 }
 
 floor_plans={
- fp_1,
- fp_2,
+ --fp_1,
+ --fp_2,
  --fp_3_str,
- --fp_test,
+ fp_test,
 }
 
 atofp_params={"dcx","dcy","dir","trx","try","tcx","tcy"}
@@ -1679,7 +1647,9 @@ function e_jumper(pos)
    else
     -- todo: move away from walls
     --  on average
-    e.dir=v_rnd()
+    local dir=v_dir(e.c_center,v_cntr)
+    local perp_dir=v_perp(dir)
+    e.dir=v_lerp(perp_dir,dir,rnd())
 	  end
    e.vel=v_mul(e.dir,e.jump_spd)
    e.jump_timer=e.jump_time
@@ -1983,7 +1953,7 @@ bosses={
 function single_sfx(id,len)
  return {
   play=function()
-   sfx(id,nil,nil,len)
+   sfx(id,-1,0,len)
   end
  }
 end
@@ -1993,9 +1963,15 @@ function hitstun_sfx(before,
  return {
   play=function()
    before.play()
-   add(hitstun_awaiters,function()
-    after.play()
-   end)
+   add(hitstun_awaiters,after.play)
+  end
+ }
+end
+
+function track(pat,fade,chan)
+ return {
+  play=function()
+   music(pat,fade,chan)
   end
  }
 end
@@ -2013,12 +1989,16 @@ sfx_ply_dmg=hitstun_sfx(
  single_sfx(5,2),
  single_sfx(7))
 
--- todo:
---music_loop1=track(0)
---music_death_boss=track(1)
---music_death_norm=track(2)
---music_loop2=track(3)
---music_boss_loop=track(4)
+-- todo: this, but for track
+-- 2 as well
+sfx_ply_dmg_last=hitstun_sfx(
+ single_sfx(5),
+ track(1,0,3))
+
+music_loop1=track(0,300,3)
+music_loop2=track(3,300,3)
+music_boss_loop=track(4,300,3)
+
 -->8
 -- states: boss room
 
@@ -2053,13 +2033,15 @@ end
 -- just use a timer to update
 -- to the next state
 function state_timer_update()
- state_timer-=1
- if state_timer==0 then
+ if state_timer>0 then
+  state_timer-=1
+ end
+ if state_next and state_timer==0 then
   state_next()
  end
 end
 
-fade_map={0,1,2,5}
+fade_map={0,1,2,5,7}
 function boss_enter_fadeout_draw()
 
  -- local idx=flr(0.5+5*state_timer/boss_fade_time)
@@ -2137,6 +2119,66 @@ function state_floor_begin_draw()
  circfill(ply.s_center.x,ply.s_center.y,r,0x1800)
  poke(0x5f34, 0x0)
  circ(ply.s_center.x,ply.s_center.y,r,7)
+end
+-->8
+-- states: dead
+
+dead_fade_time=150
+
+function state_dead()
+ state_timer=dead_fade_time
+ state_next=nil
+ state_update=update_dead
+ state_draw=draw_dead
+end
+
+function update_dead()
+ if btnp(➡️) or btnp(⬅️) then
+  menu_idx=menu_idx==1 and 2 or 1
+  sfx_menu_hi.play()
+ end
+ 
+ if menu_noquit_counter>0 then
+  menu_noquit_counter-=1
+ end
+ 
+ if btnp(🅾️) and menu_idx==2 then
+  menu_noquit_counter=150
+  sfx_menu_back.play()
+ end
+ 
+ if btnp(🅾️) and menu_idx==1 then
+  _init()
+  sfx_menu_sel.play()
+ end
+ 
+ state_timer_update()
+end
+
+function draw_dead()
+ cls()
+
+ local idx=ceil(5*(1-state_timer/dead_fade_time))
+ pal(7,fade_map[idx])
+ print("YOU ARE DEAD,", 38, 40, 7)
+ print("NOT BIG SURPRISE", 32, 46, 7)
+ 
+ -- centered on thirds 43, 85
+ print("start", 33, 82)
+ print("again", 33, 88)
+ print("quit", 92, 85)
+ 
+ if menu_idx==1 then
+  print("🅾️", 33-9, 85)
+ else
+  print("🅾️", 92-9, 85)
+ end
+ 
+ if menu_noquit_counter>0 then
+  print("you cant go...", 38, 64)
+ end
+
+ pal(7,7)
 end
 __gfx__
 66666666666776666666777666777666677667766666666676666667667666666666676666666666666666666666666666666666666666666666666666666666
