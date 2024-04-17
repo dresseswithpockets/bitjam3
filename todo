@@ -48,7 +48,7 @@ TODO add upgrade rooms, which are spawned at dead ends, and grant the player 2 o
 TODO add small chance for enemies to drop upgrade items
 TODO add small chance for enemies to drop a heart
 TODO rework heavy enemy to use a state machine for Move-Towards-Player, and Keep-Distance-And-Shoot states.
-TODO more upgrades!
+TODO more items!
 TODO camerashake on death & killing an enemy
 TODO add orbit shoot source to player
 TODO refactor multi bullets to parent child bullets at orbit points
