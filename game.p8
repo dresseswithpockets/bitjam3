@@ -178,8 +178,8 @@ function present_lvlup()
  menu_idx=1
  show_lvlup_menu=true
  lvlup_choices={
-  next_upgrade(),
-  next_upgrade()
+  next_item(),
+  next_item()
  }
 end
 
@@ -1467,9 +1467,9 @@ function floor_from_plan(plan)
  return floor
 end
 -->8
--- upgrades
+-- items
 
-function u_quad_dmg_exec()
+function i_quad_dmg_exec()
  -- 5 seconds of quad dmg
  trans_quad_time=300
  -- no trans delay
@@ -1478,14 +1478,14 @@ function u_quad_dmg_exec()
  trans_self_dmg+=1
 end
 
-function u_heavy_hits_exec()
+function i_heavy_hits_exec()
  -- increase ply damage
  ply_dmg+=1
  -- increase trans delay
  trans_delay+=15
 end
 
-function u_rapid_fire_exec()
+function i_rapid_fire_exec()
  -- increase ply shoot speed
  shoot_time-=1
  -- todo: make the shoot speed
@@ -1494,51 +1494,51 @@ function u_rapid_fire_exec()
  ply.spd*=0.8
 end
 
-u_quad_dmg={
+i_quad_dmg={
  desc={
   "+trans gives quad-dmg",
   "+trans is instant",
   "-you hit yourself, idiot!!",
  },
- exec=u_quad_dmg_exec,
+ exec=i_quad_dmg_exec,
 }
 
-u_heavy_hits={
+i_heavy_hits={
  desc={
   "+more dmg",
   "-slow transform",
  },
- exec=u_heavy_hits_exec,
+ exec=i_heavy_hits_exec,
 }
 
-u_rapid_fire={
+i_rapid_fire={
  desc={
   "+shoot faster",
   "-move slower",
  },
- exec=u_rapid_fire_exec,
+ exec=i_rapid_fire_exec,
 }
 
--- shuffle bag of all upgrades
-upgrades={
- u_rapid_fire,
- u_heavy_hits,
- u_quad_dmg,
+-- shuffle bag of all items
+items={
+ i_rapid_fire,
+ i_heavy_hits,
+ i_quad_dmg,
 }
 
-upgrade_idx=1
+item_idx=1
 
-function next_upgrade()
- local item=upgrades[upgrade_idx]
- upgrade_idx+=1
- if upgrade_idx>#upgrades then
-  upgrade_idx=1
-  shuffle(upgrades)
+function next_item()
+ local item=items[item_idx]
+ item_idx+=1
+ if item_idx>#items then
+  item_idx=1
+  shuffle(items)
  end
  return item
 end
 
-shuffle(upgrades)
+shuffle(items)
 -->8
 -- enemies
 
