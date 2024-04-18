@@ -83,8 +83,6 @@ function ply_shoot()
    spd_seeker)
   sfx_shoot_seek.play()
  end
- -- knockback
- ply.knock=v_mul(v_neg(ply.sh_dir),1)
  add(bullets,bullet)
  return bullet
 end
