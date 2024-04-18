@@ -50,7 +50,15 @@ DONE add item and heart drops to bosses
 DONE add orbit shoot source to player
 DONE replace transforming with "meter" which charges through damage done
 DONE rework control scheme to be more comfortable
-TODO more items!
+TODO: item - using meter grants you temporary rapid fire
+TODO: item - using meter grants you a temporary additional weapon source
+TODO: item - taking damage grants you longer iframes
+TODO: item - dealing damage gains extra meter
+TODO: item - enemies have a chance of dropping items
+TODO: rare item - increase max hp
+TODO: rare item - add a permanent weapon source which shoots slow-firing low-damage seekers
+TODO: rare item - activating meter grants you a temporary shield which guarantees no damage for 1 hit
+TODO: rare item - activating meter clears all bullets on the board
 TODO add small chance for enemies to drop upgrade items
 TODO rework heavy enemy to use a state machine for Move-Towards-Player, and Keep-Distance-And-Shoot states.
 TODO camerashake on death & killing an enemy
