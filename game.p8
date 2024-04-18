@@ -426,8 +426,6 @@ function _init()
  ply.iframes=0
  ply.near_enemy=nil
  ply.form=1
- ply.trans=false
- ply.trans_timer=0
  ply.spd=75/60 -- px/sec
  ply.init()
  
@@ -435,7 +433,8 @@ function _init()
  ply_source_x=ply.s_center.x
  ply_source_y=ply.s_center.y
  ply_meter=0
- max_meter=4
+ max_meter=5
+ meter_decay_spd=1/60
  
  ply_source_spd=1/60
  
@@ -450,10 +449,6 @@ function _init()
  spd_seeker=1
  
  ply_dmg=10
- trans_quad_time=0
- trans_quad_timer=0
- trans_delay=20
- trans_self_dmg=0
  
  cell_x=3
  cell_y=3
@@ -500,27 +495,6 @@ function update_normal()
   hitstun_awaiters[i]()
   deli(hitstun_awaiters,i)
  end
- 
- if trans_quad_timer>0 then
-  trans_quad_timer-=1
- end
-
- if ply.trans then
-  -- todo: spawn trans
-  --  particles or something
-  -- for an animation/effect
-  ply.trans=false
-  ply.trans_timer=1
- end
-
- if ply.trans_timer>0 then
-  ply.trans_timer-=1
-  if ply.trans_timer==0 then
-   ply.form=ply.form==1and 2or 1
-   trans_quad_timer=trans_quad_time
-   dmg_ply(trans_self_dmg)
-  end
- end
 
  -- grab btn_lut-mapped input
  -- keys() is wasd
@@ -541,21 +515,17 @@ function update_normal()
   debug=not debug
  end
  
- -- shift triggers transform
- ply.trans=(last_keys&0b10000!=0b10000) and keys_value&0b10000==0b10000
- if ply.trans then
-  ply.trans_timer=trans_delay
-  -- dont shoot when transforming
-  ply.shoot=false
-  -- dont move when transforming
-  use_spd=0
+ -- shift uses meter, only if
+ -- player isnt already using
+ -- meter
+ if not use_meter and ply_meter>=max_meter then
+	 use_meter=(last_keys&0b10000!=0b10000) and keys_value&0b10000==0b10000
+	 use_meter=use_meter and ply_meter>=max_meter
  end
  
- if ply.trans_timer>0 then
-  -- dont shoot when transforming
-  ply.shoot=false
-  -- dont move when transforming
-  use_spd=0
+ if use_meter then
+  ply_meter=max(ply_meter-meter_decay_spd,0)
+  use_meter=ply_meter>0
  end
  
  -- updating player spd from
@@ -716,10 +686,10 @@ function update_bullets()
      local e=room.enemies[ei]
      if bul.circ(e) then
 	     local dmg=ply_dmg*bul.dmg_mult
-	     -- apply funny quad dmg
-      if trans_quad_timer>0 then
-       dmg*=4
-      end
+      -- dealing damage adds
+      -- meter
+      ply_meter=min(ply_meter+dmg,max_meter)
+      
       if not e.dmg(dmg) then
        deli(room.enemies,ei)
        hitsleep=15
@@ -733,9 +703,6 @@ function update_bullets()
        end
        
        if #room.enemies==0 then
-        if ply_meter<max_meter then
-         ply_meter+=1
-        end
         if room.boss then
          -- todo: make less abrupt,
          --  with a timer or something
