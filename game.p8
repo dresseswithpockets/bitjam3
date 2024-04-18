@@ -568,7 +568,7 @@ function update_normal()
 		  goto_first_room_dir(d_down)
 		 end
 	 end
- elseif boss.health<0 and boss.circ(ply) then
+ elseif boss.health<=0 and boss.circ(ply) then
   -- if we're in boss room and
   -- player has moved into the
   -- boss hole, goto next floor
