@@ -1812,7 +1812,7 @@ function e_boss_lilguy(pos)
   -- spr can be either 5 or 6
   vec(88,16),
   vec(16,16),
-  3) -- health
+  500) -- health
  
  e.maxhp=e.health
  
