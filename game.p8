@@ -83,8 +83,6 @@ function ply_shoot()
    spd_seeker)
   sfx_shoot_seek.play()
  end
- -- knockback
- ply.knock=v_mul(v_neg(ply.sh_dir),1)
  add(bullets,bullet)
  return bullet
 end
@@ -508,7 +506,11 @@ function update_normal()
  local use_spd=ply.spd
  if ply.shoot then
   use_spd*=ply_spd_shoot_mult
+  ply_source=atan2(ply.sh_dir.x,ply.sh_dir.y)
  end
+
+ ply_source_x=ply.s_center.x+cos(ply_source)*10-2
+ ply_source_y=ply.s_center.y+sin(ply_source)*10-2
  
  -- x toggles debug
  if btnp(❎) then
@@ -613,10 +615,6 @@ function update_normal()
  if selected_item then
   room.items={}
  end
- 
- ply_source+=ply_source_spd
- ply_source_x=ply.s_center.x+cos(ply_source)*10-2
- ply_source_y=ply.s_center.y+sin(ply_source)*10-2
 
  -- get and clamp camera scroll
  cam_x,cam_y=v_unpck(ply.pos)
@@ -809,8 +807,16 @@ end
 
 function draw_doors()
  for l in all(room.links) do
-  spr(l.door.spr1,l.door.x1,l.door.y1,1,1,l.door.flip_x,l.door.flip_y)
-  spr(l.door.spr1+1,l.door.x2,l.door.y2,1,1,l.door.flip_x,l.door.flip_y)
+  local use_spr=l.door.spr1
+  if floor[l.trx][l.try].boss then
+   use_spr=37
+   if l.dir==d_right or l.dir==d_left then
+    use_spr=53
+   end
+  end
+  
+  spr(use_spr,l.door.x1,l.door.y1,1,1,l.door.flip_x,l.door.flip_y)
+  spr(use_spr+1,l.door.x2,l.door.y2,1,1,l.door.flip_x,l.door.flip_y)
  end
 end
 
@@ -1320,10 +1326,10 @@ fp_test={
 }
 
 floor_plans={
- --fp_1,
- --fp_2,
+ fp_1,
+ fp_2,
  --fp_3_str,
- fp_test,
+ --fp_test,
 }
 
 atofp_params={"dcx","dcy","dir","trx","try","tcx","tcy"}
@@ -1458,6 +1464,7 @@ function floor_from_plan(plan)
   local col_rooms={}
   for y,cell in ipairs(col) do
    local room={
+    x=x,y=y,
     t=cell.t,
     links=cell.links,
     enemies={},
@@ -1469,19 +1476,17 @@ function floor_from_plan(plan)
    if cell.links and #cell.links==1 and not (x==3 and y==3) then
     add(ends,room)
    end
-   add(col_rooms,room)
    if cell.t then
     add(rooms,room)
    end
+   add(col_rooms,room)
   end
   add(floor,col_rooms)
  end
- -- pick random room for boss
- -- room
- local boss_room=rnd(ends)
- boss_room.boss=true
- boss_room.boss_func=rnd(bosses)
- del(ends,boss_room)
+ 
+ -- select & update boss room
+ setup_boss_room(floor, ends)
+ 
  -- pick random room for item room
  local item_room=rnd(ends)
  if item_room!=nil then
@@ -1502,6 +1507,15 @@ function floor_from_plan(plan)
   end
  end
  return floor
+end
+
+function setup_boss_room(floor, ends)
+ -- pick random room for boss
+ -- room
+ local boss_room=rnd(ends)
+ boss_room.boss=true
+ boss_room.boss_func=rnd(bosses)
+ del(ends,boss_room)
 end
 -->8
 -- items
@@ -1798,7 +1812,7 @@ function e_boss_lilguy(pos)
   -- spr can be either 5 or 6
   vec(88,16),
   vec(16,16),
-  3) -- health
+  500) -- health
  
  e.maxhp=e.health
  
