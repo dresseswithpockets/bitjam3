@@ -506,7 +506,11 @@ function update_normal()
  local use_spd=ply.spd
  if ply.shoot then
   use_spd*=ply_spd_shoot_mult
+  ply_source=atan2(ply.sh_dir.x,ply.sh_dir.y)
  end
+
+ ply_source_x=ply.s_center.x+cos(ply_source)*10-2
+ ply_source_y=ply.s_center.y+sin(ply_source)*10-2
  
  -- x toggles debug
  if btnp(❎) then
@@ -611,10 +615,6 @@ function update_normal()
  if selected_item then
   room.items={}
  end
- 
- ply_source+=ply_source_spd
- ply_source_x=ply.s_center.x+cos(ply_source)*10-2
- ply_source_y=ply.s_center.y+sin(ply_source)*10-2
 
  -- get and clamp camera scroll
  cam_x,cam_y=v_unpck(ply.pos)
