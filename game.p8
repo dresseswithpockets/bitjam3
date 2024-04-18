@@ -499,8 +499,8 @@ function update_normal()
  -- grab btn_lut-mapped input
  -- keys() is wasd
  -- btn() is ⬅️➡️⬆️⬇️
- local keys_value=keys()
- local key_bits=btn_lut[keys_value&0b1111]
+ current_keys=keys()
+ local key_bits=btn_lut[current_keys&0b1111]
  local btn_bits=btn_lut[btn()&0b1111]
  ply.sh_dir=vec(dx_lut[btn_bits],dy_lut[btn_bits])
  ply.shoot=ply.sh_dir.x!=0 or ply.sh_dir.y!=0
@@ -510,8 +510,8 @@ function update_normal()
   use_spd*=ply_spd_shoot_mult
  end
  
- local toggle_debug=(last_keys&0b100000!=0b100000) and keys_value&0b100000==0b100000
- if toggle_debug then
+ -- x toggles debug
+ if btnp(❎) then
   debug=not debug
  end
  
@@ -519,8 +519,7 @@ function update_normal()
  -- player isnt already using
  -- meter
  if not use_meter and ply_meter>=max_meter then
-	 use_meter=(last_keys&0b10000!=0b10000) and keys_value&0b10000==0b10000
-	 use_meter=use_meter and ply_meter>=max_meter
+	 use_meter=keyp_shift() and ply_meter>=max_meter
  end
  
  if use_meter then
@@ -573,6 +572,8 @@ function update_normal()
   -- boss hole, goto next floor
   music(-1,500)
   state_floor_end()
+  -- clear all bullets
+  bullets={}
  end
  
  -- anti-cobble if diagonal
@@ -587,10 +588,10 @@ function update_normal()
  --  pre-move or both?
  
  -- allow player to select &
- -- acquire an item
+ -- acquire an item, with space
  local selected_item=false
  for item in all(room.items) do
-  if item.aabb(ply) and btnp(🅾️) then
+  if item.aabb(ply) and keyp_space() then
    item.acquire()
    selected_item=true
    sfx_menu_sel.play()
@@ -622,7 +623,7 @@ function update_normal()
  clamp_scroll_to_room()
  
  last_keys_bits=key_bits
- last_keys=keys_value
+ last_keys=current_keys
 end
 
 function update_nearest_enemy()
@@ -718,7 +719,7 @@ function update_bullets()
           h.init()
           add(room.hearts,h)
          else
-	         local item=next_item().fac(vec(56,56))
+	         local item=next_item()(vec(56,56))
 	         item.init()
 	         add(room.items,item)
 	        end
@@ -835,13 +836,25 @@ dy_lut={[0]=0,0,0,-1,1,-0.707,-0.707,0.707,0.707}
 
 -- remapping keyboards
 function keys()
- -- l r u d
+ -- l r u d shift space
  return (tonum(stat(28, 4)))|
         (tonum(stat(28, 7))<<1)|
         (tonum(stat(28,26))<<2)|
         (tonum(stat(28,22))<<3)|
         (tonum(stat(28,225))<<4)|
         (tonum(stat(28,44))<<5)
+end
+
+function keyp(b)
+ return (last_keys&b!=b) and current_keys&b==b
+end
+
+function keyp_shift()
+ return keyp(0b10000)
+end
+
+function keyp_space()
+ return keyp(0b100000)
 end
 
 -->8
@@ -1476,7 +1489,7 @@ function floor_from_plan(plan)
   -- two items per item room
   -- center left & center right
   for i=0,1 do
-   local item=next_item().fac(vec(36+i*42,50))
+   local item=next_item()(vec(36+i*42,50))
 	  item.init()
 	  add(item_room.items,item)
   end
@@ -1538,56 +1551,13 @@ function i_rapid_fire(pos)
  return item
 end
 
-function i_quad_dmg_exec()
- -- 5 seconds of quad dmg
- trans_quad_time=300
- -- no trans delay
- trans_delay=0
- -- +1 self-dmg on trans
- trans_self_dmg+=1
-end
-
-function i_heavy_hits_exec()
- -- increase ply damage
- ply_dmg+=1
- -- increase trans delay
- trans_delay+=15
-end
-
-i_quad_dmg={
- desc={
-  "+trans gives quad-dmg",
-  "+trans is instant",
-  "-you hit yourself, idiot!!",
- },
- exec=i_quad_dmg_exec,
-}
-
-i_heavy_hits={
- desc={
-  "+more dmg",
-  "-slow transform",
- },
- exec=i_heavy_hits_exec,
-}
-
-i_rapid_fire_info={
- desc={
-  "+shoot faster",
-  "-move slower",
- },
- fac=i_rapid_fire,
-}
-
 -- shuffle bag of all items
 items={
- i_rapid_fire_info,
- --i_heavy_hits,
- --i_quad_dmg,
+ i_rapid_fire,
 }
+shuffle(items)
 
 item_idx=1
-
 function next_item()
  local item=items[item_idx]
  item_idx+=1
@@ -1597,8 +1567,6 @@ function next_item()
  end
  return item
 end
-
-shuffle(items)
 -->8
 -- enemies
 

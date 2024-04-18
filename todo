@@ -48,8 +48,8 @@ DONE add upgrade rooms, which are spawned at dead ends, and grant the player 2 o
 DONE add small chance for enemies to drop a heart
 DONE add item and heart drops to bosses
 DONE add orbit shoot source to player
-TODO "meter" which charges through cleared rooms. Activating the meter grants improved damage, fire rate, for the duration of the room. Alternatively, maxing out the meter grants these stats for a limited amount of time, passively.
-TODO rework control scheme to be more comfortable
+DONE replace transforming with "meter" which charges through damage done
+DONE rework control scheme to be more comfortable
 TODO more items!
 TODO add small chance for enemies to drop upgrade items
 TODO rework heavy enemy to use a state machine for Move-Towards-Player, and Keep-Distance-And-Shoot states.
