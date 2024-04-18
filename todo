@@ -97,13 +97,10 @@ DONE heat seeking bullet sprite (8 directions - flippable)
 DONE rapidfire bullet sprite (ddp style?, needs to fit 8 directions - flippable)
 DONE heart/health sprite
 TODO replace placeholder player sprite (8 direction - flippable)
-TODO sprites/particles for a transformation effect (this could be smoke particles, or anything really that conceals the player)
 TODO replace placeholder tiles
-TODO a sprite representing quad damage to render on the players HUD whenever they have quad damage from transforming
 TODO special sprite for the boss's door
 
 ## biiiig stretch
-TODO alternate player sprites for mode/transformation
 DONE make linear projectiles thinner
 TODO a sprite for each upgrade, which we can render on the players HUD as they unlock more
 TODO minimap sprite representing a boss room/door (like a skull or something)
