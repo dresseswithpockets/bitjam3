@@ -57,7 +57,7 @@ DONE item - taking damage grants you longer iframes
 DONE item - dealing damage gains extra meter
 DONE item - enemies have a chance of dropping items
 DONE rare item - increase max hp
-TODO rare item - add a permanent weapon source which shoots slow-firing low-damage seekers
+DONE rare item - add a permanent weapon source which shoots slow-firing low-damage seekers
 TODO rare item - activating meter grants you a temporary shield which guarantees no damage for 1 hit
 TODO rare item - activating meter clears all bullets on the board
 TODO make it more obvious when doors are locked/unlocked
