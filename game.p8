@@ -55,6 +55,25 @@ v_half=vec(0.5,0.5)
 
 v_cntr=vec(64,64)
 -->8
+-- events
+ev_meter_start={}
+ev_meter_end={}
+ev_ply_hit={}
+ev_enemy_dead={}
+
+function handle_ev(ev, arg)
+ for f in all(ev) do f(arg) end
+end
+
+function handle_meter_start()
+ handle_ev(ev_meter_start)
+end
+
+function handle_meter_end()
+ handle_ev(ev_meter_end)
+end
+
+-->8
 -- game
 debug=true
 function shuffle(t)
@@ -431,8 +450,8 @@ function _init()
  ply_source_x=ply.s_center.x
  ply_source_y=ply.s_center.y
  ply_meter=0
- max_meter=5
- meter_decay_spd=1/60
+ max_meter=50
+ meter_decay_spd=1/3
  
  ply_source_spd=1/60
  
@@ -522,11 +541,19 @@ function update_normal()
  -- meter
  if not use_meter and ply_meter>=max_meter then
 	 use_meter=keyp_shift() and ply_meter>=max_meter
+	 -- if the player just used meter,
+	 -- trigger meter_start events
+	 if use_meter then
+ 	 handle_meter_start()
+	 end
  end
  
  if use_meter then
   ply_meter=max(ply_meter-meter_decay_spd,0)
   use_meter=ply_meter>0
+  if not use_meter then
+   handle_meter_end()
+  end
  end
  
  -- updating player spd from
@@ -687,7 +714,9 @@ function update_bullets()
 	     local dmg=ply_dmg*bul.dmg_mult
       -- dealing damage adds
       -- meter
-      ply_meter=min(ply_meter+dmg,max_meter)
+      if not use_meter then
+       ply_meter=min(ply_meter+dmg,max_meter)
+      end
       
       if not e.dmg(dmg) then
        deli(room.enemies,ei)
@@ -775,8 +804,7 @@ function draw_normal()
  draw_all(room.items)
  
  camera(0,0)
- draw_ply_hp()
- draw_ply_items()
+ draw_ply_hud()
  
  -- debug/test zone
 end
@@ -820,13 +848,18 @@ function draw_doors()
  end
 end
 
-function draw_ply_hp()
+function draw_ply_hud()
+ -- hp
  for i=0,ply.health-1 do
-  spr(4,1+i*9,119-14)
+  spr(4,1+i*9,105)
  end
-end
-
-function draw_ply_items()
+ 
+ -- meter
+ local frac=1-(ply_meter/max_meter)
+ rectfill(2,70,4,98,0)
+ rectfill(3,lerp(71,97,frac),3,97,7)
+ 
+ -- items
  for i,item in ipairs(ply_items) do
   item.pos=vec(i*13-10,117)
   item.draw()
@@ -1326,10 +1359,10 @@ fp_test={
 }
 
 floor_plans={
- fp_1,
- fp_2,
+ --fp_1,
+ --fp_2,
  --fp_3_str,
- --fp_test,
+ fp_test,
 }
 
 atofp_params={"dcx","dcy","dir","trx","try","tcx","tcy"}
@@ -1531,35 +1564,37 @@ function heart(pos)
  return h
 end
 
-function i_rapid_fire(pos)
+function item_ent(pos,sx,sy)
  local item=entity(
   5,
-  v_zero,
+  v_one,
   vec(11,11),
-  32,32,
-  vec(8,8))
+  sx,sy,
+  vec(13,13))
  item.pos=pos
  item.c_active=false
- item.info=i_rapid_fire_info
- 
- local base_draw=item.draw
- function item.draw()
-  -- draw item border/background
-  sspr(
-   16,48,
-   13,13,
-   item.pos.x-2.5,item.pos.y-2.5,
-   13,13)
-  base_draw()
- end
  
  function item.acquire()
-	 -- increase ply shoot speed
-	 shoot_time-=5
-	 -- todo: make the shoot speed
-	 --  weapon-specific
-	 -- decrease ply move speed
-	 ply.spd*=0.8
+  add(ev_meter_start,item.on_meter_start)
+  add(ev_meter_end,item.on_meter_end)
+  add(ev_ply_hit,item.on_ply_hit)
+  add(ev_enemy_dead,item.on_enemy_dead)
+ end
+ 
+ return item
+end
+
+function i_rapid_fire(pos)
+ local item=item_ent(pos,16,32)
+
+ function item.on_meter_start()
+  local pre=shoot_time
+  shoot_time=max(shoot_time-2,2)
+  item.rf_delta=pre-shoot_time
+ end
+ 
+ function item.on_meter_end()
+  shoot_time+=item.rf_delta
  end
  
  return item
@@ -2112,7 +2147,7 @@ function boss_enter_fadein_draw()
  draw_boss_room()
  draw_all(enemies)
  ply.draw()
- draw_ply_hp()
+ draw_ply_hud()
  poke(0x5f34, 0x2)
  local r=128*(boss_fade_time-state_timer)/boss_fade_time
  circfill(ply.s_center.x,ply.s_center.y,r,0x1800)
