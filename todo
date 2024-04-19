@@ -52,7 +52,7 @@ DONE replace transforming with "meter" which charges through damage done
 DONE rework control scheme to be more comfortable
 DONE render meter in HUD
 DONE item - using meter grants you temporary rapid fire
-TODO item - using meter grants you a temporary additional weapon source
+DONE item - using meter grants you a temporary additional weapon source
 DONE item - taking damage grants you longer iframes
 TODO item - dealing damage gains extra meter
 TODO item - enemies have a chance of dropping items

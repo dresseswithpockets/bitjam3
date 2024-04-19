@@ -7,7 +7,7 @@ __lua__
 
 function vec(x,y) return {x=x or 0,y=y or 0} end
 
-function v_polar(l,a) return vec(l*sin(a),l*cos(a)) end
+function v_polar(l,a) return vec(l*cos(a),l*sin(a)) end
 function v_rnd()      return v_polar(1,rnd())          end
 
 function v_cpy(v)     return vec(v.x,v.y) end
@@ -89,25 +89,11 @@ function shuffle(t)
 end
 
 function ply_shoot()
- local bullet=nil
- if ply.form==1 then
-  bullet=b_linear(
-   vec(ply_source_x,ply_source_y),
-   v_mul(ply.sh_dir,spd_bullet),
-   t_player)
-  sfx_shoot.play()
- else
-  bullet=b_seeker(
-   vec(ply_source_x,ply_source_y),
-   v_cpy(ply.sh_dir),
-   t_player,
-   nil, -- use default lifetime
-   ply.near_enemy,
-   spd_seeker)
-  sfx_shoot_seek.play()
+ for source in all(ply_sources) do
+  local bul=source.try_shoot()
+  add(bullets,bul)
  end
- add(bullets,bullet)
- return bullet
+ sfx_shoot.play()
 end
 
 function has_col(x,y)
@@ -451,14 +437,14 @@ function _init()
  ply.spd=75/60 -- px/sec
  ply.init()
  
- ply_source=0 -- [0,1)
- ply_source_x=ply.s_center.x
- ply_source_y=ply.s_center.y
+ ply_source_ang=0
+ ply_sources={
+  source(),
+ }
+ 
  ply_meter=0
  max_meter=50
  meter_decay_spd=1/3
- 
- ply_source_spd=1/60
  
  ply_items={}
  ply_spd_shoot_mult=0.85
@@ -501,6 +487,40 @@ function _init()
  state_normal()
 end
 
+function update_source_offsets()
+ local assumed_count=max(#ply_sources,4)
+ for i=2,#ply_sources do
+  ply_sources[i].off=(i-1)/assumed_count
+ end
+end
+
+function add_source()
+ local s=source()
+ add(ply_sources,s)
+ update_source_offsets()
+ return s
+end
+
+function del_source(s)
+ del(ply_sources,s)
+ update_source_offsets()
+end
+
+function source()
+ local s={
+  off=0,
+  pos=v_cpy(ply.s_center),
+ }
+
+ function s.try_shoot()
+  return b_linear(
+   v_cpy(s.pos),
+   v_mul(ply.sh_dir,spd_bullet),
+   t_player)
+ end
+
+ return s
+end
 -->8
 -- normal update
 function _update60()
@@ -530,11 +550,13 @@ function update_normal()
  local use_spd=ply.spd
  if ply.shoot then
   use_spd*=ply_spd_shoot_mult
-  ply_source=atan2(ply.sh_dir.x,ply.sh_dir.y)
+  ply_source_ang=v_ang(ply.sh_dir)
  end
 
- ply_source_x=ply.s_center.x+cos(ply_source)*10-2
- ply_source_y=ply.s_center.y+sin(ply_source)*10-2
+ for source in all(ply_sources) do
+  local source_ang=ply_source_ang+source.off
+  source.pos=v_add(ply.s_center,v_sub(v_polar(10,source_ang),vec(2,2)))
+ end
  
  -- x toggles debug
  if btnp(❎) then
@@ -689,8 +711,8 @@ function update_shoot()
 	if shoot_timer>0 then
   shoot_timer-=1
  elseif ply.shoot then
-  local b=ply_shoot()
-  shoot_timer=shoot_time*b.rate_mult
+  ply_shoot()
+  shoot_timer=shoot_time
  end
 end
 
@@ -800,7 +822,9 @@ function draw_normal()
  end
  
  if (ply.iframes%10)<7 or hitsleep>0 then
-  spr(47,ply_source_x,ply_source_y) 
+  for source in all(ply_sources) do
+   spr(47,source.pos.x,source.pos.y)
+  end 
   ply.draw()
  end
  draw_all(bullets)
@@ -1599,7 +1623,9 @@ function i_rapid_fire(pos)
  end
  
  function item.on_meter_end()
-  shoot_time+=item.rf_delta
+  if item.rf_delta then
+   shoot_time+=item.rf_delta
+  end
  end
  
  return item
@@ -1613,10 +1639,24 @@ function i_extra_iframes(pos)
  return item
 end
 
+function i_add_source_on_meter(pos)
+ local item=item_ent(pos,16,48)
+ function item.on_meter_start()
+  item.m_source=add_source()
+ end
+ function item.on_meter_end()
+  if item.m_source then
+   del_source(item.m_source)
+  end
+ end
+ return item
+end
+
 -- shuffle bag of all items
 items={
- i_rapid_fire,
- i_extra_iframes,
+ --i_rapid_fire,
+ --i_extra_iframes,
+ i_add_source_on_meter,
 }
 shuffle(items)
 
@@ -2206,7 +2246,7 @@ function state_floor_begin_draw()
  draw_doors()
  draw_all(enemies)
  ply.draw()
- draw_ply_hp()
+ draw_ply_hud()
  poke(0x5f34, 0x2)
  local r=128*(boss_fade_time-state_timer)/boss_fade_time
  circfill(ply.s_center.x,ply.s_center.y,r,0x1800)
