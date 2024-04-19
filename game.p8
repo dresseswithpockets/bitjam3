@@ -73,6 +73,10 @@ function handle_meter_end()
  handle_ev(ev_meter_end)
 end
 
+function handle_ply_hit()
+ handle_ev(ev_ply_hit)
+end
+
 -->8
 -- game
 debug=true
@@ -182,8 +186,9 @@ function dmg_ply(n)
  ply.health-=n or 1
  -- 2 seconds of iframes
  ply.iframes=120
+ handle_ply_hit()
  if ply.health>0 then
-  hitsleep=15
+  hitsleep=1
   sfx_ply_dmg.play()
  else
   -- after hitsleep is over, switch
@@ -1600,9 +1605,18 @@ function i_rapid_fire(pos)
  return item
 end
 
+function i_extra_iframes(pos)
+ local item=item_ent(pos,32,32)
+ function item.on_ply_hit()
+  ply.iframes*=1.5
+ end
+ return item
+end
+
 -- shuffle bag of all items
 items={
  i_rapid_fire,
+ i_extra_iframes,
 }
 shuffle(items)
 

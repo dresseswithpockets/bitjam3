@@ -53,7 +53,7 @@ DONE rework control scheme to be more comfortable
 DONE render meter in HUD
 DONE item - using meter grants you temporary rapid fire
 TODO item - using meter grants you a temporary additional weapon source
-TODO item - taking damage grants you longer iframes
+DONE item - taking damage grants you longer iframes
 TODO item - dealing damage gains extra meter
 TODO item - enemies have a chance of dropping items
 TODO rare item - increase max hp
