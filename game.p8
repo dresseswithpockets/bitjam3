@@ -59,10 +59,13 @@ v_cntr=vec(64,64)
 ev_meter_start={}
 ev_meter_end={}
 ev_ply_hit={}
+ev_enemy_hit={}
 ev_enemy_dead={}
 
 function handle_ev(ev, arg)
- for f in all(ev) do f(arg) end
+ for f in all(ev) do
+  if f then f(arg) end
+ end
 end
 
 function handle_meter_start()
@@ -77,6 +80,9 @@ function handle_ply_hit()
  handle_ev(ev_ply_hit)
 end
 
+function handle_enemy_hit(arg)
+ handle_ev(ev_enemy_hit,arg)
+end
 -->8
 -- game
 debug=true
@@ -741,13 +747,18 @@ function update_bullets()
 	     local dmg=ply_dmg*bul.dmg_mult
       -- dealing damage adds
       -- meter
+      enemy_hit_arg={
+       meter_gain=dmg
+      }
+      
+      handle_enemy_hit(enemy_hit_arg)
+      
       if not use_meter then
-       ply_meter=min(ply_meter+dmg,max_meter)
+       ply_meter=min(ply_meter+enemy_hit_arg.meter_gain,max_meter)
       end
       
       if not e.dmg(dmg) then
        deli(room.enemies,ei)
-       hitsleep=15
        
        -- small chance of 
        -- dropping a heart
@@ -1607,6 +1618,7 @@ function item_ent(pos,sx,sy)
   add(ev_meter_start,item.on_meter_start)
   add(ev_meter_end,item.on_meter_end)
   add(ev_ply_hit,item.on_ply_hit)
+  add(ev_enemy_hit,item.on_enemy_hit)
   add(ev_enemy_dead,item.on_enemy_dead)
  end
  
@@ -1652,11 +1664,20 @@ function i_add_source_on_meter(pos)
  return item
 end
 
+function i_more_meter(pos)
+ local item=item_ent(pos,32,48)
+ function item.on_enemy_hit(arg)
+  arg.meter_gain*=1.5
+ end
+ return item
+end
+
 -- shuffle bag of all items
 items={
  --i_rapid_fire,
  --i_extra_iframes,
- i_add_source_on_meter,
+ --i_add_source_on_meter,
+ i_more_meter,
 }
 shuffle(items)
 
