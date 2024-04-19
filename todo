@@ -55,7 +55,7 @@ DONE item - using meter grants you temporary rapid fire
 DONE item - using meter grants you a temporary additional weapon source
 DONE item - taking damage grants you longer iframes
 DONE item - dealing damage gains extra meter
-TODO item - enemies have a chance of dropping items
+DONE item - enemies have a chance of dropping items
 TODO rare item - increase max hp
 TODO rare item - add a permanent weapon source which shoots slow-firing low-damage seekers
 TODO rare item - activating meter grants you a temporary shield which guarantees no damage for 1 hit

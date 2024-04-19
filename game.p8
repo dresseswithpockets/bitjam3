@@ -83,6 +83,10 @@ end
 function handle_enemy_hit(arg)
  handle_ev(ev_enemy_hit,arg)
 end
+
+function handle_enemy_dead(arg)
+ handle_ev(ev_enemy_dead,arg)
+end
 -->8
 -- game
 debug=true
@@ -401,10 +405,13 @@ end
 function setup_next_floor()
  floor_idx+=1
  local plan=dungeon[floor_idx]
- floor=floor_from_plan(plan)
+ -- if room is nil, then we havent
+ -- set up a floor yet, and this is
+ -- the first floor
+ floor=floor_from_plan(plan,room==nil)
  cell_x,cell_y=3,3
  room=floor[cell_x][cell_y]
- room.locked=true
+ room.locked=#room.enemies>0
  boss=nil
 end
 
@@ -491,6 +498,18 @@ function _init()
  --  to present this on startup?
  --present_lvlup()
  state_normal()
+end
+
+function add_next_item(pos)
+ local item=next_item()(pos)
+ item.init()
+ add(room.items,item)
+end
+
+function add_heart(pos)
+ local h=heart(pos)
+ h.init()
+ add(room.hearts,h)
 end
 
 function update_source_offsets()
@@ -760,12 +779,15 @@ function update_bullets()
       if not e.dmg(dmg) then
        deli(room.enemies,ei)
        
-       -- small chance of 
-       -- dropping a heart
-       if not room.boss and rnd()<0.01 then
-	       local h=heart(e.pos)
-	       h.init()
-	       add(room.hearts,h)
+       if not room.boss then
+        -- only triggers if the
+        -- enemy is not the boss
+        handle_enemy_dead(e)
+	       -- small chance of 
+	       -- dropping a heart
+        if rnd()<0.01 then
+         add_heart(e.pos)
+	       end
        end
        
        if #room.enemies==0 then
@@ -780,13 +802,9 @@ function update_bullets()
          -- boss to drop a heart
          -- instead of an item
          if ply.health<3 and rnd()<0.5 then
-          local h=heart(v_cntr)
-          h.init()
-          add(room.hearts,h)
+          add_heart(v_cntr)
          else
-	         local item=next_item()(vec(56,56))
-	         item.init()
-	         add(room.items,item)
+          add_next_item(vec(56,56))
 	        end
         end
         -- unlock room if all 
@@ -1531,7 +1549,7 @@ rgen_types={
  rgen_heavy,
 }
 
-function floor_from_plan(plan)
+function floor_from_plan(plan,first)
  local rooms,ends,floor={},{},{}
  for x,col in ipairs(plan) do
   local col_rooms={}
@@ -1562,6 +1580,12 @@ function floor_from_plan(plan)
  
  -- pick random room for item room
  local item_room=rnd(ends)
+ -- if this is the first floor
+ -- then the center room is
+ -- always an item room
+ if first then
+  item_room=floor[3][3]
+ end
  if item_room!=nil then
   item_room.item=true
   -- two items per item room
@@ -1672,12 +1696,24 @@ function i_more_meter(pos)
  return item
 end
 
+function i_enemy_drop_chance(pos)
+ local item=item_ent(pos,48,32)
+ function item.on_enemy_dead(e)
+  -- 1% chance for an item to drop
+  if rnd()<0.01 then
+   add_next_item(e.pos)
+  end
+ end
+ return item
+end
+
 -- shuffle bag of all items
 items={
  --i_rapid_fire,
  --i_extra_iframes,
  --i_add_source_on_meter,
- i_more_meter,
+ --i_more_meter,
+ i_enemy_drop_chance,
 }
 shuffle(items)
 
