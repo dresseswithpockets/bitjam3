@@ -1326,10 +1326,10 @@ fp_test={
 }
 
 floor_plans={
- --fp_1,
- --fp_2,
+ fp_1,
+ fp_2,
  --fp_3_str,
- fp_test,
+ --fp_test,
 }
 
 atofp_params={"dcx","dcy","dir","trx","try","tcx","tcy"}
