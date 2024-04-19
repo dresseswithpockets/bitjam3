@@ -50,15 +50,22 @@ DONE add item and heart drops to bosses
 DONE add orbit shoot source to player
 DONE replace transforming with "meter" which charges through damage done
 DONE rework control scheme to be more comfortable
-TODO: item - using meter grants you temporary rapid fire
-TODO: item - using meter grants you a temporary additional weapon source
-TODO: item - taking damage grants you longer iframes
-TODO: item - dealing damage gains extra meter
-TODO: item - enemies have a chance of dropping items
-TODO: rare item - increase max hp
-TODO: rare item - add a permanent weapon source which shoots slow-firing low-damage seekers
-TODO: rare item - activating meter grants you a temporary shield which guarantees no damage for 1 hit
-TODO: rare item - activating meter clears all bullets on the board
+TODO item - using meter grants you temporary rapid fire
+TODO item - using meter grants you a temporary additional weapon source
+TODO item - taking damage grants you longer iframes
+TODO item - dealing damage gains extra meter
+TODO item - enemies have a chance of dropping items
+TODO rare item - increase max hp
+TODO rare item - add a permanent weapon source which shoots slow-firing low-damage seekers
+TODO rare item - activating meter grants you a temporary shield which guarantees no damage for 1 hit
+TODO rare item - activating meter clears all bullets on the board
+TODO make it more obvious when doors are locked/unlocked
+TODO add a bullet clear to the boss whenever their phase changes
+TODO add a shield to the boss during their phase transition
+TODO set the players position to the starting position in the boss room during phase transitions (this can be obscured by the bullet clear animation)
+TODO make multi bullets/boss bullets like 1 or 2px smaller
+TODO make boss bullets absorb player bullets
+TODO add additional shooting pattern/variation to boss
 TODO add small chance for enemies to drop upgrade items
 TODO rework heavy enemy to use a state machine for Move-Towards-Player, and Keep-Distance-And-Shoot states.
 TODO camerashake on death & killing an enemy
@@ -121,6 +128,7 @@ DONE player seeker/heavy shot sfx
 DONE player take damage sfx
 DONE player moving sfx (?)
 DONE player enter/exit door SFX
+TODO sfx for triggering meter (think Oblivion's Eve)
 TODO heavy enemy shot sfx (could probably be the same as the player's heavy shot sfx)
 TODO boss cluster shot sfx (could probably be the same as the player's light shot sfx)
 TODO boss death SFX (a funny explosion, pawbably)
