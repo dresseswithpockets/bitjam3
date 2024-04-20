@@ -67,13 +67,15 @@ DONE set the players position to the starting position in the boss room during p
 DONE make multi bullets/boss bullets like 1 or 2px smaller
 DONE make boss bullets absorb player bullets
 DONE add additional shooting pattern/variation to boss
+DONE fix bug where killing the boss in 1 shot doesnt spawn door
+DONE fix door lock not properly rendering all the time
+DONE integrate door exit sfx
+DONE fix heavy's shot bullets not being destroyed
 TODO rework heavy enemy to use a state machine for Move-Towards-Player, and Keep-Distance-And-Shoot states.
 TODO camerashake on death & killing an enemy
 TODO refactor multi bullets to parent child bullets at orbit points
-TODO integrate door exit sfx
 TODO integrate player walking sfx
 TODO menu cart
-TODO fix bug where killing the boss in 1 shot doesnt spawn door (?)
 
 ## boss 1 design
 DONE add "dead-end" flag to rooms. Dead ends can be picked for use as special rooms (e.g. Boss, Shop, Item, Upgrade, etc)

@@ -855,7 +855,7 @@ function update_bullets()
 	   -- collisions with player &
 	   -- other entities
 	   if not bul.update() then
-	    bul.destoy=true
+	    bul.destroy=true
 	   elseif bul.team==t_player then
 	    test_ply_bul_bullets(bul)
 	    if not bul.destroy then
@@ -958,16 +958,16 @@ end
 
 function draw_doors()
  for l in all(room.links) do
-  local use_spr,troom=l.door.spr1,floor[l.trx][l.try]
-  if troom.boss then
-   use_spr=37
-   if l.dir==d_right or l.dir==d_left then
-    use_spr=53
-   end
-  elseif troom.item then
+  local use_spr=l.door.spr1
+  if room.locked then
    use_spr=64
    if l.dir==d_right or l.dir==d_left then
     use_spr=80
+   end
+  elseif floor[l.trx][l.try].boss then
+   use_spr=37
+   if l.dir==d_right or l.dir==d_left then
+    use_spr=53
    end
   end
   
@@ -1499,10 +1499,10 @@ fp_test={
 }
 
 floor_plans={
- --fp_1,
- --fp_2,
+ fp_1,
+ fp_2,
  --fp_3_str,
- fp_test,
+ --fp_test,
 }
 
 atofp_params={"dcx","dcy","dir","trx","try","tcx","tcy"}
@@ -2032,8 +2032,8 @@ function e_heavy(pos)
  e.shot_arc=0.1
  e.shot_count=4
  e.shot_start_radius=8
- e.shot_life=12
- e.shot_spd=4
+ e.shot_life=24
+ e.shot_spd=2
  
  e.next_shot_timer=0
  e.pre_shot_timer=0
