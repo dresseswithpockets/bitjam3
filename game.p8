@@ -809,9 +809,14 @@ function test_ply_bul_enemies(bul)
      -- enemy is not the boss
      handle_enemy_dead(e)
      -- small chance of 
-     -- dropping a heart
-     if rnd()<0.01 then
-      add_heart(e.pos)
+     -- dropping a heart or an
+     -- item
+     if rnd()<0.015 then
+      if rnd(0.66) then
+       add_heart(e.pos)
+      else
+	      add_next_item(e.pos)
+	     end
      end
     end
     
