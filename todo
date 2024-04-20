@@ -64,10 +64,9 @@ DONE make jumpers a little bit less annoying to fight
 TODO make it more obvious when doors are locked/unlocked
 DONE add a bullet clear to the boss whenever their phase changes
 DONE set the players position to the starting position in the boss room during phase transitions (this can be obscured by the bullet clear animation)
-TODO make multi bullets/boss bullets like 1 or 2px smaller
-TODO make boss bullets absorb player bullets
+DONE make multi bullets/boss bullets like 1 or 2px smaller
+DONE make boss bullets absorb player bullets
 TODO add additional shooting pattern/variation to boss
-TODO add small chance for enemies to drop upgrade items
 TODO rework heavy enemy to use a state machine for Move-Towards-Player, and Keep-Distance-And-Shoot states.
 TODO camerashake on death & killing an enemy
 TODO refactor multi bullets to parent child bullets at orbit points

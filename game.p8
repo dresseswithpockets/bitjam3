@@ -760,85 +760,121 @@ function update_clears()
  end
 end
 
-function update_bullets()
- for i=#bullets,1,-1 do
-  local bul=bullets[i]
-  bul.upd_coords()
-  bul.upd_spr()
-  local bx,by=v_unpck(bul.s_center)
-  if bx<0 or
-    bx>256 or
-    by<0 or
-    by>256 then
-   -- too far away, remove
-   deli(bullets,i)
-  else
-   -- update bullets & handle
-   -- collisions with player &
-   -- other entities
-   if not bul:update() then
-    deli(bullets,i)
-   elseif bul.team==t_player then
-    for ei=#room.enemies,1,-1 do
-     local e=room.enemies[ei]
-     if bul.circ(e) then
-	     local dmg=bul.dmg
-      -- dealing damage adds
-      -- meter
-      enemy_hit_arg={
-       meter_gain=dmg
-      }
-      
-      handle_enemy_hit(enemy_hit_arg)
-      
-      if not use_meter then
-       ply_meter=min(ply_meter+enemy_hit_arg.meter_gain,max_meter)
-      end
-      
-      if not e.dmg(dmg) then
-       deli(room.enemies,ei)
-       
-       if not room.boss then
-        -- only triggers if the
-        -- enemy is not the boss
-        handle_enemy_dead(e)
-	       -- small chance of 
-	       -- dropping a heart
-        if rnd()<0.01 then
-         add_heart(e.pos)
-	       end
-       end
-       
-       if #room.enemies==0 then
-        if room.boss then
-         -- todo: make less abrupt,
-         --  with a timer or something
-         music_loop2.play()
-         -- if player kills boss, boss
-         -- drops an item in the center
-         -- of the room
-         -- theres a 50% chance for the
-         -- boss to drop a heart
-         -- instead of an item
-         if ply.health<max_health and rnd()<0.5 then
-          add_heart(v_cntr)
-         else
-          add_next_item(vec(56,56))
-	        end
-        end
-        -- unlock room if all 
-        -- enemies are gone
-        room.locked=false
-       end
-      end
-      deli(bullets,i)
+function test_ply_bul_bullets(bul)
+ -- check intersection with
+ -- other bullets if it has a
+ for other_bul in all(bullets) do
+  if bul!=other_bul and other_bul.team==t_enemy and other_bul.circ(bul) then
+   bul.destroy=true
+   if other_bul.destruct_mode==2 then
+    -- only destroy player bullet
+    other_bul.destroy=true
+   end
+  end
+ end
+end
+
+function test_ply_bul_enemies(bul)
+	for ei=#room.enemies,1,-1 do
+  local e=room.enemies[ei]
+  if bul.circ(e) then
+   local dmg=bul.dmg
+   -- dealing damage adds
+   -- meter
+   enemy_hit_arg={
+    meter_gain=dmg
+   }
+   
+   handle_enemy_hit(enemy_hit_arg)
+   
+   if not use_meter then
+    ply_meter=min(ply_meter+enemy_hit_arg.meter_gain,max_meter)
+   end
+   
+   if not e.dmg(dmg) then
+    deli(room.enemies,ei)
+    
+    if not room.boss then
+     -- only triggers if the
+     -- enemy is not the boss
+     handle_enemy_dead(e)
+     -- small chance of 
+     -- dropping a heart
+     if rnd()<0.01 then
+      add_heart(e.pos)
      end
     end
-   elseif bul.circ(ply) then
-    dmg_ply()
-    if bul.del_on_dmg then
-     deli(bullets,i)
+    
+    if #room.enemies==0 then
+     if room.boss then
+      -- todo: make less abrupt,
+      --  with a timer or something
+      music_loop2.play()
+      -- if player kills boss, boss
+      -- drops an item in the center
+      -- of the room
+      -- theres a 50% chance for the
+      -- boss to drop a heart
+      -- instead of an item
+      if ply.health<max_health and rnd()<0.5 then
+       add_heart(v_cntr)
+      else
+       add_next_item(vec(56,56))
+      end
+     end
+     -- unlock room if all 
+     -- enemies are gone
+     room.locked=false
     end
+   end
+   bul.destroy=true
+  end
+ end
+end
+
+function update_bullets()
+ for bul in all(bullets) do
+  if not bul.destroy then
+	  bul.upd_coords()
+	  bul.upd_spr()
+	  local bx,by=v_unpck(bul.s_center)
+	  if bx<0 or
+	    bx>256 or
+	    by<0 or
+	    by>256 then
+	   -- too far away, remove
+	   bul.destroy=true
+	  else
+	   -- update bullets & handle
+	   -- collisions with player &
+	   -- other entities
+	   if not bul.update() then
+	    bul.destoy=true
+	   elseif bul.team==t_player then
+	    test_ply_bul_bullets(bul)
+	    if not bul.destroy then
+	     test_ply_bul_enemies(bul)
+	    end
+	   elseif bul.circ(ply) then
+	    dmg_ply()
+	    if bul.del_on_dmg then
+	     bul.destroy=true
+	    end
+	   end
+	  end
+	 end
+ end
+ 
+ for i=#bullets,1,-1 do
+  local bul=bullets[i]
+  
+  if bul.destroy then
+	  if bul.multi_cnt then
+	   bul.multi_cnt-=1
+	   bul.destroy=bul.multi_cnt==0
+	  end
+	  if bul.destroy then
+    deli(bullets,i)
    end
   end
  end
@@ -1193,6 +1229,11 @@ function bullet(pos,
  b.lifetime=lifetime or 0
  b.dmg=dmg
  b.del_on_dmg=true
+ b.destruct_mode=0
+ -- destruct_mode:
+ --  0 is nothing
+ --  1 is destory collided bullets
+ --  2 is destroy self & collided bullets
  
  b.update=function()
   if b.lifetime==-1 then
@@ -1254,10 +1295,10 @@ function b_multi(pos,vel,team,lifetime,dmg)
  local b=bullet(
   pos,
   vel,
-  3,
-  vec(7,7),
+  1.5,
+  vec(5,5),
   vec(24,0),
-  vec(7,7),
+  vec(5,5),
   team,
   lifetime,
   dmg,
@@ -1266,7 +1307,7 @@ function b_multi(pos,vel,team,lifetime,dmg)
  b.multi_ang=0
  b.multi_rot_spd=1/120
  b.multi_rad_spd=0
- b.multi_radius=3
+ b.multi_radius=2.5
  b.multi_cnt=3
  b.buls={}
  
@@ -2061,11 +2102,11 @@ function e_boss_lilguy(pos)
  e.tx_time_min=12
  e.tx_time_max=120
  -- firing
- e.shot_arc=0.2
+ e.shot_arc=0.3
  e.shot_count=3
  e.shot_start_radius=1
  e.shot_life=0
- e.shot_spd=0.6
+ e.shot_spd=1
  e.shot_fac=b_multi
  e.shoot_timer=80
  e.shoot_time=90
@@ -2162,7 +2203,7 @@ function e_boss_lilguy(pos)
   e.tx_time=e.tx_time_max
   e.tx_timer=e.tx_time
   e.starting_phase=true
-  e.shoot_timer=0
+  e.shoot_timer=1
  end
  
  local base_shoot_ply=e.shoot_ply
@@ -2242,6 +2283,7 @@ function shoot_multi(pos,dir,arc,n,r,lt,spd,b_fac)
    t_enemy,
    lt)
   bullet.init()
+  bullet.destruct_mode=2
   add(bullets,bullet)
  end
 end
