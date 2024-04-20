@@ -89,7 +89,6 @@ function handle_enemy_dead(arg)
 end
 -->8
 -- game
-debug=true
 function shuffle(t)
  -- do a fisher-yates shuffle
  for i=#t,1,-1 do
@@ -379,23 +378,6 @@ function entity(c_rad,
    ent.pos.x,ent.pos.y,
    ent.s_size.x,ent.s_size.y,
    ent.flip_x,ent.flip_y)
-  if debug and ent.c_p1 and ent.c_active then
-   -- draw top left, bottom right
-   pset(ent.pos.x,ent.pos.y,11)
-   pset(
-   	ent.pos.x+ent.s_size.x,
-   	ent.pos.y+ent.s_size.y,
-   	11)
-   -- draw aabb
-   rect(
-    ent.c_p1.x,ent.c_p1.y,
-    ent.c_p2.x,ent.c_p2.y,
-    12)
-   -- draw radius
-   circ(ent.c_center.x,ent.c_center.y,ent.c_rad)
-   -- draw center
-   pset(ent.c_center.x,ent.c_center.y,14)
-  end
  end
  
  return ent
@@ -594,11 +576,6 @@ function update_normal()
   if source.timer>0 then
    source.timer-=1
   end
- end
- 
- -- x toggles debug
- if btnp(❎) then
-  debug=not debug
  end
  
  -- shift uses meter, only if
@@ -1342,10 +1319,6 @@ function b_multi(pos,vel,team,lifetime,dmg)
 	   b.s_size.x,b.s_size.y,
 	   bul.sprpos.x,bul.sprpos.y,
 	   b.s_size.x,b.s_size.y)
-	  if debug then
-	   circ(bul.pos.x,bul.pos.y,b.c_rad,12)
-	   pset(b.s_center.x,b.s_center.y,14)
-	  end
   end
  end
 
@@ -2073,7 +2046,7 @@ function e_boss_lilguy(pos)
   -- spr can be either 5 or 6
   vec(88,16),
   vec(16,16),
-  500) -- health
+  200) -- health
  
  e.maxhp=e.health
  
@@ -2102,31 +2075,54 @@ function e_boss_lilguy(pos)
  e.tx_time=flr(rnd(e.tx_time_max-e.tx_time_min)+e.tx_time_min)
  e.tx_timer=e.tx_time
  
- function e.update()
-  if e.phase==0 or e.starting_phase then
-	  local x=lerp(
+ function e.try_shoot()
+  e.shoot_timer-=1
+  if e.shoot_timer==0 then
+   e.shoot_ply()
+   e.shoot_timer=e.shoot_time
+  end
+ end
+ 
+ function e.phase1()
+  local x=lerp(
 	   e.next_tx,
 	   e.last_tx,
 	   e.tx_timer/e.tx_time)
-	  e.pos.x=x
-	  e.tx_timer-=1
-	  
-	  if e.tx_timer==0 then
-	   if e.phase==0 then
-		   e.last_tx=e.next_tx
-		   e.next_tx=rnd(e.bound_r-e.bound_l)+e.bound_l
-		   e.tx_time=flr(rnd(e.tx_time_max-e.tx_time_min)+e.tx_time_min)
-		   e.tx_timer=e.tx_time
-		  end
-	   e.starting_phase=false
-	  end
-	 end
-	 if not e.starting_phase then
-	  e.shoot_timer-=1
-	  if e.shoot_timer==0 then
-	   e.shoot_ply()
-	   e.shoot_timer=e.shoot_time
-	  end
+  e.pos.x=x
+  e.tx_timer-=1
+	 if e.tx_timer==0 then
+   e.last_tx=e.next_tx
+   e.next_tx=rnd(e.bound_r-e.bound_l)+e.bound_l
+   e.tx_time=flr(rnd(e.tx_time_max-e.tx_time_min)+e.tx_time_min)
+   e.tx_timer=e.tx_time
+  end
+  e.try_shoot()
+ end
+ 
+ function e.update()
+  if e.phase==0 then
+   e.phase1()
+  else
+   -- circ fade to black then
+   -- clear all bullets
+   if e.starting_phase then
+    e.tx_timer-=1.5
+    if e.tx_timer==0 then
+     ply.pos=vec(60,92)
+     e.pos.x=56
+     bullets={}
+     e.starting_phase=false
+    end
+   elseif e.tx_timer<e.tx_time then
+    e.tx_timer+=1.5
+    -- hack: force player pos
+    -- and bullets clear until
+    -- circ fade is done
+    e.pos.x=56
+    bullets={}
+   else
+    e.try_shoot()
+   end
   end
   
   e.upd_coords()
@@ -2139,6 +2135,9 @@ function e_boss_lilguy(pos)
  local base_draw=e.draw
  function e.draw()
   base_draw()
+  if e.phase>0 and e.tx_timer!=e.tx_time then
+   circ_fade(e.c_center,e.tx_timer/e.tx_time)
+  end
   -- boss health bar
   -- todo: make this a baseclass
   --  for other bosses
@@ -2160,13 +2159,10 @@ function e_boss_lilguy(pos)
  
  function e.next_phase()
   e.phase+=1
-  e.starting_phase=true
-  
-  -- go to the center slowly
-  e.last_tx=e.pos.x
-  e.next_tx=64-e.s_size.x/2
   e.tx_time=e.tx_time_max
   e.tx_timer=e.tx_time
+  e.starting_phase=true
+  e.shoot_timer=0
  end
  
  local base_shoot_ply=e.shoot_ply
@@ -2360,12 +2356,12 @@ function boss_enter_fadeout_draw()
  pal(7,7)
 end
 
-function boss_enter_fadeout_draw_old()
+function circ_fade(pos,frac)
  poke(0x5f34, 0x2)
- local r=128*(state_timer-1)/boss_fade_time
- circfill(ply.s_center.x,ply.s_center.y,r,0x1800)
+ local r=128*frac
+ circfill(pos.x,pos.y,r,0x1800)
  poke(0x5f34, 0x0)
- circ(ply.s_center.x,ply.s_center.y,r,7)
+ circ(pos.x,pos.y,r,7)
 end
 
 function boss_enter_fadein_draw()
@@ -2374,11 +2370,9 @@ function boss_enter_fadein_draw()
  draw_all(enemies)
  ply.draw()
  draw_ply_hud()
- poke(0x5f34, 0x2)
- local r=128*(boss_fade_time-state_timer)/boss_fade_time
- circfill(ply.s_center.x,ply.s_center.y,r,0x1800)
- poke(0x5f34, 0x0)
- circ(ply.s_center.x,ply.s_center.y,r,7)
+ circ_fade(
+  ply.s_center,
+  (boss_fade_time-state_timer)/boss_fade_time)
 end
 -->8
 -- states: floor transition
