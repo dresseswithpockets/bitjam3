@@ -887,8 +887,7 @@ function update_bullets()
 end
 
 function update_enemies()
- for i=#room.enemies,1,-1 do
-  local e=room.enemies[i]
+ for e in all(room.enemies) do
   e.upd_coords()
   e.upd_spr()
   e.update()
@@ -1940,8 +1939,10 @@ function e_walker(pos)
  e.spd=0.25
  
  function e.update()
-  e.vel=v_mul(v_dir(e.pos,ply.pos),e.spd)
-	 e.move()
+  if e.near(ply) and not v_eq(e.pos,ply.pos) then
+	  e.vel=v_mul(v_dir(e.pos,ply.pos),e.spd)
+	 end
+		e.move()
 	 if e.aabb(ply) then
 	  dmg_ply()
 	 end
