@@ -61,7 +61,7 @@ DONE rare item - add a permanent weapon source which shoots slow-firing low-dama
 DONE rare item - activating meter grants you a temporary shield which guarantees no damage for 1 hit
 DONE rare item - activating meter clears all bullets on the board
 DONE make jumpers a little bit less annoying to fight
-TODO make it more obvious when doors are locked/unlocked
+DONE make it more obvious when doors are locked/unlocked
 DONE add a bullet clear to the boss whenever their phase changes
 DONE set the players position to the starting position in the boss room during phase transitions (this can be obscured by the bullet clear animation)
 DONE make multi bullets/boss bullets like 1 or 2px smaller
