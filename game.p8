@@ -3,7 +3,11 @@ version 42
 __lua__
 -- vector.p8
 -- by @thacuber2a03
+
 -- modified by snale
+-- n.b. several unused functions
+-- have been removed, to save
+-- tokens
 
 function vec(x,y) return {x=x or 0,y=y or 0} end
 
@@ -12,9 +16,6 @@ function v_rnd()      return v_polar(1,rnd())          end
 
 function v_cpy(v)     return vec(v.x,v.y) end
 function v_unpck(v)   return v.x, v.y end
-function v_arr(v)     return {v_unpck(v)} end
-function v_tostr(v)   return "["..v.x..", "..v.y.."]" end
-function v_isvec(v)   return type(v)=="table" and type(v.x)=="number" and type(v.y)=="number" end
 function v_eq(a,b)    return a.x==b.x and a.y==b.y end
 
 function v_add(a,b)  return vec( a.x+b.x,  a.y+b.y) end
@@ -22,7 +23,6 @@ function v_sub(a,b)  return vec( a.x-b.x,  a.y-b.y) end
 function v_mul(v,n)  return vec( v.x*n,    v.y*n  ) end
 function v_div(v,n)  return vec( v.x/n,    v.y/n  ) end
 function v_divi(v,n) return vec( v.x\n,    v.y\n  ) end
-function v_mod(v,n)  return vec( v.x%n,    v.y%n  ) end
 function v_neg(v)    return vec(-v.x,     -v.y    ) end
 
 function v_dot(a,b)   return a.x*b.x+a.y*b.y end
@@ -32,22 +32,13 @@ function v_dstsq(a,b) return v_magsq(v_sub(b,a)) end
 function v_dst(a,b)   return sqrt(v_dstsq(a,b))  end
 function v_norm(v)    return v_div(v,v_mag(v))   end
 function v_perp(v)    return vec(v.y, -v.x)   end
-function v_sprj(a,b)  return v_dot(a,v_norm(b))  end
-function v_proj(a,b)  return v_mul(v_norm(b),v_sprj(a,b)) end
 function v_dir(a,b)   return v_norm(v_sub(b,a))  end
 
---function v_rot(v,t)    local s,c=sin(v_ang(v)-t),cos(v_ang(v)-t) return vec(v.x*c+v.y*s, -(s*v.x)+c*v.y) end
 function v_rot(v,a)    local s,c=sin(a),cos(a) return vec(c*v.x-s*v.y,s*v.x+c*v.y) end
 function v_ang(v)      return atan2(v.x,v.y)    end
-function v_atwds(a,b)  return v_ang(v_sub(b,a)) end
 
 function v_lerp(a,b,t) return vec(a.x+(b.x-a.x)*t, a.y+(b.y-a.y)*t) end
 function v_flr(v)      return vec(flr(v.x),flr(v.y)) end
-
-v_right=vec( 1, 0)
-v_left =vec(-1, 0)
-v_down =vec( 0, 1)
-v_up   =vec( 0,-1)
 
 v_zero=vec()
 v_one =vec(1,1)
