@@ -2537,7 +2537,7 @@ function update_dead()
  end
  
  if btnp(🅾️) and menu_idx==1 then
-  _init()
+  load("game.p8")
   sfx_menu_sel.play()
  end
  
