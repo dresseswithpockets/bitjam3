@@ -1664,23 +1664,14 @@ function floor_from_plan(plan,first)
  setup_boss_room(floor, ends)
  
  -- pick random room for item room
- local item_room=rnd(ends)
+ setup_item_room(rnd(ends))
  -- if this is the first floor
  -- then the center room is
  -- always an item room
  if first then
-  item_room=floor[3][3]
+  setup_item_room(floor[3][3])
  end
- if item_room!=nil then
-  item_room.item=true
-  -- two items per item room
-  -- center left & center right
-  for i=0,1 do
-   local item=next_item_chance()(vec(36+i*42,50))
-	  item.init()
-	  add(item_room.items,item)
-  end
- end
+ 
  -- loop through rooms and add
  -- enemies
  for room in all(rooms) do
@@ -1689,6 +1680,19 @@ function floor_from_plan(plan,first)
   end
  end
  return floor
+end
+
+function setup_item_room(room)
+ if room!=nil then
+  room.item=true
+  -- two items per item room
+  -- center left & center right
+  for i=0,1 do
+   local item=next_item_chance()(vec(36+i*42,50))
+	  item.init()
+	  add(room.items,item)
+  end
+ end
 end
 
 function setup_boss_room(floor, ends)
