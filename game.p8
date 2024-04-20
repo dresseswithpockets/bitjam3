@@ -246,6 +246,12 @@ function entity(c_rad,
  -- s_dir_idx - directional index from 1 to 8
  -- s_lut - dir-to-spr lut, overrides s_x,s_y
  
+ function ent.include(t)
+  for k,v in pairs(t) do
+   ent[k]=v
+  end
+ end
+ 
  -- aabb/rect overlap test
  ent.aabb=function(other)
 	 local a1,a2=ent.c_p1,ent.c_p2
@@ -1227,14 +1233,17 @@ function bullet(pos,
   s_lut or b_lut,
   b_hori_lut,
   b_vert_lut)
- b.c_active=false
- b.pos=v_sub(v_add(v_flr(pos),v_half),vec(3.5,3.5))
- b.vel=vel
- b.team=team
- b.lifetime=lifetime or 0
- b.dmg=dmg
- b.del_on_dmg=true
- b.destruct_mode=0
+
+ b.include{
+	 c_active=false,
+	 pos=v_sub(v_add(v_flr(pos),v_half),vec(3.5,3.5)),
+	 vel=vel,
+	 team=team,
+	 lifetime=lifetime or 0,
+	 dmg=dmg,
+	 del_on_dmg=true,
+	 destruct_mode=0,
+ }
  -- destruct_mode:
  --  0 is nothing
  --  1 is destory collided bullets
@@ -1308,13 +1317,15 @@ function b_multi(pos,vel,team,lifetime,dmg)
   lifetime,
   dmg,
   {},{},{})
-
- b.multi_ang=0
- b.multi_rot_spd=1/120
- b.multi_rad_spd=0
- b.multi_radius=2.5
- b.multi_cnt=3
- b.buls={}
+ 
+ b.include{
+	 multi_ang=0,
+	 multi_rot_spd=1/120,
+	 multi_rad_spd=0,
+	 multi_radius=2.5,
+	 multi_cnt=3,
+	 buls={},
+ }
  
  b.multi_base_spd=b.multi_rot_spd
  
@@ -2116,6 +2127,9 @@ function e_boss_lilguy(pos)
  e.shoot_timer=80
  e.shoot_time=90
  
+ e.spread_timer=-1
+ e.spread_time=30
+ 
  e.last_tx=e.pos.x
  e.next_tx=rnd(e.bound_r-e.bound_l)+e.bound_l
  e.tx_time=flr(rnd(e.tx_time_max-e.tx_time_min)+e.tx_time_min)
@@ -2126,6 +2140,18 @@ function e_boss_lilguy(pos)
   if e.shoot_timer==0 then
    e.shoot_ply()
    e.shoot_timer=e.shoot_time
+  end
+  
+  if e.spread_timer>-1 then
+   e.spread_timer-=1
+   if e.spread_timer%4==0 then
+   	local t=1-e.spread_timer/e.spread_time
+    local right_ang=lerp(1,0.8,t)
+    local left_ang=lerp(0.5,0.7,t)
+    e.spawn_spread_linear(right_ang)
+    e.spawn_spread_linear(left_ang)
+    sfx_shoot_seek.play()
+   end
   end
  end
  
@@ -2211,39 +2237,56 @@ function e_boss_lilguy(pos)
   e.shoot_timer=1
  end
  
+ function e.spawn_spread_linear(ang)
+  local b=b_linear(
+   v_cpy(e.s_center),
+   v_polar(1,ang),
+   t_enemy)
+  b.destruct_mode=2
+  b.init()
+  add(bullets,b)
+ end
+ 
+ function e.boss_shoot_multi()
+  local b=b_multi(
+   v_cpy(e.s_center),
+   v_cpy(v_zero),
+   t_enemy,
+   e.shot_life)
+  
+  b.include{
+   multi_cnt=8,
+   multi_ang=0.1*time(),
+   multi_rot_spd=1/15,
+   multi_base_spd=1/15,
+   multi_rad_spd=0.25,
+   del_on_dmg=false,
+  }
+  b.init()
+  add(bullets,b)
+ end
+ 
+ function e.boss_shoot_spread()
+  e.spread_timer=e.spread_time
+ end
+ 
  local base_shoot_ply=e.shoot_ply
  function e.shoot_ply()
   if e.phase==0 then
-   base_shoot_ply()
+   if rnd()<0.2 then
+    e.boss_shoot_spread()
+   else
+    base_shoot_ply()
+   end
   elseif e.phase==1 then
-   local b=b_multi(
-    v_cpy(e.s_center),
-    v_cpy(v_zero),
-    t_enemy,
-    e.shot_life)
-   b.multi_cnt=8
-   b.multi_ang=0.1*time()
-   b.multi_rot_spd=1/15
-   b.multi_base_spd=1/15
-   b.multi_rad_spd=0.25
-   b.del_on_dmg=false
-   b.init()
-   add(bullets,b)
+   e.boss_shoot_multi()
   elseif e.phase==2 then
-   base_shoot_ply()
-   local b=b_multi(
-    v_cpy(e.s_center),
-    v_cpy(v_zero),
-    t_enemy,
-    e.shot_life)
-   b.multi_cnt=8
-   b.multi_ang=0.1*time()
-   b.multi_rot_spd=1/13
-   b.multi_base_spd=1/13
-   b.multi_rad_spd=0.4
-   b.del_on_dmg=false
-   b.init()
-   add(bullets,b)
+   if rnd()<0.2 then
+    e.boss_shoot_spread()
+   else
+    base_shoot_ply()
+   end
+   e.boss_shoot_multi()
   end
  end
  
