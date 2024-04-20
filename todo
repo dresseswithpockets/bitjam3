@@ -60,6 +60,7 @@ DONE rare item - increase max hp
 DONE rare item - add a permanent weapon source which shoots slow-firing low-damage seekers
 DONE rare item - activating meter grants you a temporary shield which guarantees no damage for 1 hit
 DONE rare item - activating meter clears all bullets on the board
+DONE make jumpers a little bit less annoying to fight
 TODO make it more obvious when doors are locked/unlocked
 TODO add a bullet clear to the boss whenever their phase changes
 TODO add a shield to the boss during their phase transition

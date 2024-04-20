@@ -1923,7 +1923,7 @@ end
 function e_jumper(pos)
  local e=enemy(
   pos,
-  2,
+  4,
   vec(2,2),
   vec(4,4),
   -- spr can be either 5 or 6
@@ -1975,7 +1975,7 @@ function e_heavy(pos)
  local state_waitshoot=1
  local e=enemy(
   pos,
-  4,
+  6,
   vec(4,4),
   vec(7,8),
   -- spr can be either 5 or 6
