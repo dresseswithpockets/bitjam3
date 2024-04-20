@@ -253,7 +253,7 @@ function entity(c_rad,
  end
  
  -- aabb/rect overlap test
- ent.aabb=function(other)
+ function ent.aabb(other)
 	 local a1,a2=ent.c_p1,ent.c_p2
 	 local b1,b2=other.c_p1,other.c_p2
 	 return a1.x<b2.x and a2.x>b1.x and
@@ -261,31 +261,31 @@ function entity(c_rad,
 	end
 	
 	-- circle overlap test
-	ent.circ=function(o)
+	function ent.circ(o)
 	 local min_d=ent.c_rad+o.c_rad
 	 local d=v_dstsq(ent.c_center,o.c_center)
 	 return ent.near(o) and d<(min_d*min_d)
 	end
 	
-	ent.near=function(o,d)
+	function ent.near(o,d)
 	 d=d or 127
 	 return abs(o.pos.x-ent.pos.x)<=d and
 	  abs(o.pos.y-ent.pos.y)<=d
 	end
 	
-	ent.init=function()
+	function ent.init()
 	 ent.upd_coords()
 	 ent.upd_spr()
 	end
  
- ent.upd_coords=function()
+  function ent.upd_coords()
   ent.c_p1=v_add(ent.pos,ent.c_off)
   ent.c_p2=v_add(ent.c_p1,ent.c_size)
   ent.c_center=v_lerp(ent.c_p1,ent.c_p2,0.5)
   ent.s_center=v_add(ent.pos,v_div(ent.s_size,2))
  end
  
- ent.upd_spr=function()
+ function ent.upd_spr()
   local s=ent.s_lut[ent.s_dir_idx]
   if s==nil then
 	  ent.use_sx=ent.s_x
@@ -377,7 +377,7 @@ function entity(c_rad,
 	 return col_left,col_right,col_up,col_down
 	end
  
- ent.draw=function()
+ function ent.draw()
   sspr(
    ent.use_sx,ent.use_sy,
    ent.s_size.x,ent.s_size.y,
@@ -390,8 +390,7 @@ function entity(c_rad,
 end
 
 function setup_next_floor()
- floor_idx+=1
- local plan=dungeon[floor_idx]
+ local plan=rnd(floor_plans)
  -- if room is nil, then we havent
  -- set up a floor yet, and this is
  -- the first floor
@@ -462,15 +461,18 @@ function _init()
  cam_x=64
  cam_y=64
  
+ -- stats
+ enemies_killed=0
+ rooms_cleared=0
+ floors_cleared=0
+ items_got=0
+ time_minutes=0
+ time_seconds=0
+ 
  -- hitsleep & shake
  hitsleep=0
  hitstun_awaiters={}
- 
- dungeon={
-  rnd(floor_plans),
-  rnd(floor_plans),
- }
- floor_idx=0
+
  setup_next_floor()
 
  --add(room.enemies,e_walker(vec(20,20)))
@@ -548,6 +550,13 @@ end
 -- normal update
 function _update60()
  state_update()
+ if ply.health>0 then
+  time_seconds+=1/60
+	 if time_seconds>60 then
+	  time_seconds-=60
+	  time_minutes+=1
+	 end
+ end
 end
 
 function update_normal()
@@ -650,6 +659,7 @@ function update_normal()
   -- boss hole, goto next floor
   music(-1,500)
   state_floor_end()
+  floors_cleared+=1
   -- clear all bullets
   bullets={}
  end
@@ -671,6 +681,7 @@ function update_normal()
  for item in all(room.items) do
   if item.aabb(ply) and keyp_space() then
    item.acquire()
+   items_got+=1
    selected_item=true
    sfx_menu_sel.play()
    add(ply_items,item)
@@ -800,6 +811,8 @@ function test_ply_bul_enemies(bul)
    if not e.dmg(dmg) then
     deli(room.enemies,ei)
     
+    enemies_killed+=1
+    
     if not room.boss then
      -- only triggers if the
      -- enemy is not the boss
@@ -831,6 +844,7 @@ function test_ply_bul_enemies(bul)
      -- unlock room if all 
      -- enemies are gone
      room.locked=false
+     rooms_cleared+=1
     end
    end
    bul.destroy=true
@@ -978,22 +992,17 @@ end
 function draw_ply_hud()
  -- hp
  for i=0,ply.health-1 do
-  spr(4,1+i*9,105)
+  spr(4,1+i*9,119)
  end
  for i=ply.health,max_health-1 do
-  spr(63,1+i*9,105)
+  spr(63,1+i*9,119)
  end
  
  -- meter
  local frac=1-(ply_meter/max_meter)
- rectfill(2,70,4,98,0)
- rectfill(3,lerp(71,97,frac),3,97,7)
- 
- -- items
- for i,item in ipairs(ply_items) do
-  item.pos=vec(i*13-10,117)
-  item.draw()
- end
+ rect(1,83,5,117,7)
+ rectfill(2,84,4,116,0)
+ rectfill(3,lerp(85,115,frac),3,115,7)
 end
 
 -->8
@@ -1267,7 +1276,7 @@ function bullet(pos,
   return true
  end
 
- b.upd_spr=function()
+ function b.upd_spr()
 	 local angle=v_ang(b.vel)
 	 angle+=0.0625 -- [0.0625,1.0625)
 	 angle=flr(angle*8)+1 -- [1,9]
@@ -1404,7 +1413,7 @@ function b_seeker(pos,vel,team,lifetime,dmg,target)
  b.dir=v_div(vel, b.spd) -- v_norm but saving a division
  b.target=target
  
- b.update=function()
+ function b.update()
 	 if b.target then
 	  -- target dir vector
 	  local tdir=v_dir(b.c_center,b.target.c_center)
@@ -1498,10 +1507,10 @@ fp_test={
 }
 
 floor_plans={
- fp_1,
- fp_2,
+ --fp_1,
+ --fp_2,
  --fp_3_str,
- --fp_test,
+ fp_test,
 }
 
 atofp_params={"dcx","dcy","dir","trx","try","tcx","tcy"}
@@ -2104,7 +2113,7 @@ function e_boss_lilguy(pos)
   -- spr can be either 5 or 6
   vec(88,16),
   vec(16,16),
-  200) -- health
+  200+70*floors_cleared) -- health
  
  e.maxhp=e.health
  
@@ -2550,22 +2559,27 @@ function draw_dead()
 
  local idx=ceil(5*(1-state_timer/dead_fade_time))
  pal(7,fade_map[idx])
- print("YOU ARE DEAD,", 38, 40, 7)
- print("NOT BIG SURPRISE", 32, 46, 7)
+ ?"⧗ "..time_minutes..":"..flr(time_seconds*10)/10,33,12,7
+ ?"🐱 "..enemies_killed,80,12
+ ?"⌂ "..rooms_cleared,33,18
+ ?"▒ "..floors_cleared,80,18
+
+ ?"YOU ARE DEAD,",38,46
+ ?"NOT BIG SURPRISE",32,52
  
  -- centered on thirds 43, 85
- print("start", 33, 82)
- print("again", 33, 88)
- print("quit", 92, 85)
+ ?"start",33,82
+ ?"again",33,88
+ ?"quit",92,85
  
  if menu_idx==1 then
-  print("🅾️", 33-9, 85)
+  ?"🅾️",33-9,85
  else
-  print("🅾️", 92-9, 85)
+  ?"🅾️",92-9,85
  end
  
  if menu_noquit_counter>0 then
-  print("you cant go...", 38, 64)
+  ?"you cant go...",38,64
  end
 
  pal(7,7)
