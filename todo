@@ -87,19 +87,15 @@ TODO funny explosion when boss dies :3
 
 ## biiiig stretch
 DONE fix cobblestoning
-TODO fade-to-black using PAL swapping
-TODO enemy death gibs with some bounciness/physics
-TODO add variation to floor plans by randomly flipping them horizontally and vertically when generating the dungeon
-TODO clean up & animate door transitions
-TODO clean up & animate lvlup menu
-TODO add main menu
+DONE fade-to-black using PAL swapping
 TODO add additional unique floor plans
-TODO make rapid fire weapon alternating
+TODO post floor clear screen
+TODO add main menu
+TODO enemy death gibs with some bounciness/physics
 TODO use a bullet pool to ensure we never go over the bullet limit
 TODO toggle-able minimap which shows rooms discovered, their shapes, and room types if known.
 TODO add boss animations when ply enters the room (e.g. one the boss falls from the sky, shakes the camera, makes a slam sfx)
 TODO whenever the player takes damage, use a palette swap to swap white to a red (maybe secret palette dark-red 128-8)
-TODO post floor clear screen
 
 # art
 DONE placeholder player
@@ -112,13 +108,13 @@ DONE boss sprite
 DONE heat seeking bullet sprite (8 directions - flippable)
 DONE rapidfire bullet sprite (ddp style?, needs to fit 8 directions - flippable)
 DONE heart/health sprite
-TODO replace placeholder player sprite (8 direction - flippable)
+DONE replace placeholder player sprite (8 direction - flippable)
+DONE special sprite for the boss's door
 TODO replace placeholder tiles
-TODO special sprite for the boss's door
 
 ## biiiig stretch
 DONE make linear projectiles thinner
-TODO a sprite for each upgrade, which we can render on the players HUD as they unlock more
+DONE a sprite for each upgrade, which we can render on the players HUD as they unlock more
 TODO minimap sprite representing a boss room/door (like a skull or something)
 
 # sfx
@@ -130,10 +126,11 @@ DONE player take damage sfx
 DONE player moving sfx (?)
 DONE player enter/exit door SFX
 TODO sfx for triggering meter (think Oblivion's Eve)
-TODO heavy enemy shot sfx (could probably be the same as the player's heavy shot sfx)
-TODO boss cluster shot sfx (could probably be the same as the player's light shot sfx)
+TODO sfx for player/enemy obsorbing damage via shield or other means
+TODO bullet clear/bomb sfx
+TODO heavy enemy shot sfx (probably dont need to make a new one, could probably be the same as the player's heavy shot sfx)
+TODO boss cluster shot sfx (probably dont need to make a new one, could probably be the same as the player's light shot sfx)
 TODO boss death SFX (a funny explosion, pawbably)
-TODO player death SFX
 
 # music
 DONE a simple ambient loop
