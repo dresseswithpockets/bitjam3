@@ -952,11 +952,16 @@ end
 
 function draw_doors()
  for l in all(room.links) do
-  local use_spr=l.door.spr1
-  if floor[l.trx][l.try].boss then
+  local use_spr,troom=l.door.spr1,floor[l.trx][l.try]
+  if troom.boss then
    use_spr=37
    if l.dir==d_right or l.dir==d_left then
     use_spr=53
+   end
+  elseif troom.item then
+   use_spr=64
+   if l.dir==d_right or l.dir==d_left then
+    use_spr=80
    end
   end
   
