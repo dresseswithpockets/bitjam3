@@ -63,8 +63,7 @@ DONE rare item - activating meter clears all bullets on the board
 DONE make jumpers a little bit less annoying to fight
 TODO make it more obvious when doors are locked/unlocked
 DONE add a bullet clear to the boss whenever their phase changes
-TODO add a shield to the boss during their phase transition
-TODO set the players position to the starting position in the boss room during phase transitions (this can be obscured by the bullet clear animation)
+DONE set the players position to the starting position in the boss room during phase transitions (this can be obscured by the bullet clear animation)
 TODO make multi bullets/boss bullets like 1 or 2px smaller
 TODO make boss bullets absorb player bullets
 TODO add additional shooting pattern/variation to boss
