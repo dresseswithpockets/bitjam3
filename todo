@@ -125,11 +125,11 @@ DONE player take damage sfx
 DONE player moving sfx (?)
 DONE player enter/exit door SFX
 TODO sfx for triggering meter (think Oblivion's Eve)
-TODO sfx for player/enemy obsorbing damage via shield or other means
+DONE sfx for player/enemy obsorbing damage via shield or other means
 TODO bullet clear/bomb sfx
 TODO heavy enemy shot sfx (probably dont need to make a new one, could probably be the same as the player's heavy shot sfx)
 TODO boss cluster shot sfx (probably dont need to make a new one, could probably be the same as the player's light shot sfx)
-TODO boss death SFX (a funny explosion, pawbably)
+DONE boss death SFX (a funny explosion, pawbably)
 
 # music
 DONE a simple ambient loop
