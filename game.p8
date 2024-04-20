@@ -1791,8 +1791,8 @@ end
 function i_enemy_drop_chance(pos)
  local item=item_ent(pos,48,32)
  function item.on_enemy_dead(e)
-  -- 1% chance for an item to drop
-  if rnd()<0.01 then
+  -- 2% chance for an item to drop
+  if rnd()<0.02 then
    add_next_item(e.pos)
   end
  end
